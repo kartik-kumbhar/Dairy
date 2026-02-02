@@ -1,0 +1,44 @@
+import mongoose from "mongoose";
+
+const billSchema = new mongoose.Schema(
+  {
+    farmerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Farmer",
+      required: true,
+    },
+    totalMilkAmount: {
+      type: Number,
+      default: 0,
+    },
+    totalDeduction: {
+      type: Number,
+      default: 0,
+    },
+    totalBonus: {
+      type: Number,
+      default: 0,
+    },
+    netPayable: {
+      type: Number,
+      default: 0,
+    },
+    totalLiters: {
+      type: Number,
+      default: 0,
+    },
+    periodFrom: {
+      type: String, // YYYY-MM-DD
+      required: true,
+    },
+    periodTo: {
+      type: String, // YYYY-MM-DD
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+
+billSchema.index({ farmerId: 1, periodFrom: 1, periodTo: 1 }, { unique: true });
+
+export default mongoose.model("Bill", billSchema);

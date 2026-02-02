@@ -1,0 +1,50 @@
+import mongoose from "mongoose";
+
+const inventorySchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+    },
+
+    category: {
+      type: String,
+      enum: ["Feed", "Equipment", "Testing", "Stationery", "Other"],
+      default: "Other",
+    },
+
+    unit: {
+      type: String,
+      required: true,
+    },
+
+    currentStock: {
+      type: Number,
+      default: 0,
+    },
+
+    minStock: {
+      type: Number,
+      default: 0,
+    },
+
+    purchaseRate: {
+      type: Number,
+      default: 0,
+    },
+
+    sellingRate: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { timestamps: true },
+);
+
+export default mongoose.model("Inventory", inventorySchema);

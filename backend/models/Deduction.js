@@ -1,0 +1,41 @@
+import mongoose from "mongoose";
+const deductionSchema = new mongoose.Schema(
+  {
+    farmerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Farmer",
+      required: true,
+    },
+    date: {
+      type: String,
+      required: true,
+    },
+    type: {
+      type: String,
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+
+    // ✅ ADD THESE
+    remainingAmount: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Partial", "Cleared"],
+      default: "Pending",
+    },
+
+    note: {
+      type: String,
+      default: "",
+    },
+  },
+  { timestamps: true },
+);
+
+export default mongoose.model("Deduction", deductionSchema);
