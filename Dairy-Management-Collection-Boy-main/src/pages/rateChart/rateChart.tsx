@@ -58,8 +58,32 @@ function generateMatrix(
   );
 }
 
+// function defaultChart(milkType: MilkType): MilkRateChart {
+//   const now = new Date().toISOString();
+//   const baseRate = milkType === "cow" ? 20 : 30;
+//   const fatFactor = milkType === "cow" ? 4 : 5;
+//   const snfFactor = 1;
+
+//   const baseConfig = {
+//     milkType,
+//     fats: DEFAULT_FATS,
+//     snfs: DEFAULT_SNFS,
+//     baseRate,
+//     fatFactor,
+//     snfFactor,
+//   };
+
+//   return {
+//     ...baseConfig,
+//     rates: generateMatrix(baseConfig),
+//     updatedAt: now,
+//   };
+// }
+
 function defaultChart(milkType: MilkType): MilkRateChart {
   const now = new Date().toISOString();
+  const today = now.slice(0, 10); // YYYY-MM-DD
+
   const baseRate = milkType === "cow" ? 20 : 30;
   const fatFactor = milkType === "cow" ? 4 : 5;
   const snfFactor = 1;
@@ -76,44 +100,10 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   return {
     ...baseConfig,
     rates: generateMatrix(baseConfig),
+    effectiveFrom: today, // ✅ REQUIRED
     updatedAt: now,
   };
 }
-
-// function loadStorage(): RateChartStorage {
-//   try {
-//     const raw = localStorage.getItem(STORAGE_KEY);
-//     if (!raw) {
-//       const fresh: RateChartStorage = {
-//         cow: defaultChart("Cow"),
-//         buffalo: defaultChart("Buffalo"),
-//       };
-//       localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-//       return fresh;
-//     }
-//     const parsed = JSON.parse(raw) as RateChartStorage;
-//     if (!parsed.cow || !parsed.buffalo) {
-//       const fresh: RateChartStorage = {
-//         cow: defaultChart("Cow"),
-//         buffalo: defaultChart("Buffalo"),
-//       };
-//       localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-//       return fresh;
-//     }
-//     return parsed;
-//   } catch {
-//     const fresh: RateChartStorage = {
-//       cow: defaultChart("Cow"),
-//       buffalo: defaultChart("Buffalo"),
-//     };
-//     localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-//     return fresh;
-//   }
-// }
-
-// function saveStorage(data: RateChartStorage) {
-//   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-// }
 
 // Find matrix rate for exactly matching FAT + SNF, if present
 function findMatrixRate(
@@ -161,8 +151,23 @@ const RateChartPage: React.FC = () => {
       try {
         const res = await getRateCharts();
 
-        const cowChart = res.data.cow ?? defaultChart("cow");
-        const buffaloChart = res.data.buffalo ?? defaultChart("buffalo");
+        const cowChart = res.data.cow
+          ? {
+              ...res.data.cow,
+              effectiveFrom:
+                res.data.cow.effectiveFrom ??
+                new Date().toISOString().slice(0, 10),
+            }
+          : defaultChart("cow");
+
+        const buffaloChart = res.data.buffalo
+          ? {
+              ...res.data.buffalo,
+              effectiveFrom:
+                res.data.buffalo.effectiveFrom ??
+                new Date().toISOString().slice(0, 10),
+            }
+          : defaultChart("buffalo");
 
         setCharts({
           cow: cowChart,
@@ -222,6 +227,7 @@ const RateChartPage: React.FC = () => {
     setCurrent({
       ...current,
       rates: matrix,
+      effectiveFrom: current.effectiveFrom,
       updatedAt: new Date().toISOString(),
     });
   };
@@ -260,6 +266,8 @@ const RateChartPage: React.FC = () => {
 
       await updateRateChart(activeMilkType, {
         ...chartToSave,
+        effectiveFrom:
+          chartToSave.effectiveFrom || new Date().toISOString().slice(0, 10),
         updatedAt: new Date().toISOString(),
       });
 
@@ -370,6 +378,8 @@ const RateChartPage: React.FC = () => {
         fats,
         snfs,
         rates,
+        effectiveFrom:
+          current.effectiveFrom ?? new Date().toISOString().slice(0, 10),
         updatedAt: new Date().toISOString(),
       };
 

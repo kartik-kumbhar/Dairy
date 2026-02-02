@@ -5,7 +5,11 @@ import InputField from "../../components/inputField";
 import Loader from "../../components/loader";
 
 import { getFarmers } from "../../axios/farmer_api";
-import { addMilkEntry, getMilkEntries } from "../../axios/milk_api";
+import {
+  addMilkEntry,
+  getMilkEntries,
+  getRateForMilk,
+} from "../../axios/milk_api";
 
 import type { MilkCollection, MilkShift } from "../../types/milkCollection";
 import type { Farmer } from "../../types/farmer";
@@ -35,6 +39,8 @@ const MilkEntryPage: React.FC = () => {
   const [fat, setFat] = useState<string>("");
   const [snf, setSnf] = useState<string>("");
   const [rate, setRate] = useState<string>("0.00");
+  const [loadingRate, setLoadingRate] = useState(false);
+
   const [remarks, setRemarks] = useState<string>("");
 
   const [errors, setErrors] = useState<{
@@ -51,6 +57,11 @@ const MilkEntryPage: React.FC = () => {
   const [filterMode, setFilterMode] = useState<DateFilterMode>("day");
   const [filterDate, setFilterDate] = useState<string>(todayISO);
   const [filterMonth, setFilterMonth] = useState<string>(todayMonth);
+
+  const selectedFarmer = useMemo(
+    () => farmers.find((f) => f._id === farmerId),
+    [farmers, farmerId],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -72,6 +83,56 @@ const MilkEntryPage: React.FC = () => {
     load();
   }, []);
 
+  // useEffect(() => {
+  //   const fetchRate = async () => {
+  //     if (!selectedFarmer || !fat || !snf || !date) {
+  //       setAutoRate(0);
+  //       return;
+  //     }
+
+  //     try {
+  //       const res = await getRateForMilk({
+  //         milkType: selectedFarmer.milkType,
+  //         fat: Number(fat),
+  //         snf: Number(snf),
+  //         date,
+  //       });
+
+  //       setAutoRate(res.data.rate);
+  //     } catch {
+  //       setAutoRate(0);
+  //     }
+  //   };
+
+  //   fetchRate();
+  // }, [selectedFarmer, fat, snf, date]);
+
+  useEffect(() => {
+    const fetchRate = async () => {
+      if (!selectedFarmer || !fat || !snf || !date) return;
+
+      try {
+        setLoadingRate(true);
+
+        const res = await getRateForMilk({
+          milkType: selectedFarmer.milkType,
+          fat: Number(fat),
+          snf: Number(snf),
+          date,
+        });
+
+        setRate(res.data.rate.toFixed(2));
+      } catch (err) {
+        console.error("Rate fetch failed", err);
+        setRate("0.00");
+      } finally {
+        setLoadingRate(false);
+      }
+    };
+
+    fetchRate();
+  }, [selectedFarmer, fat, snf, date]);
+
   const handleSave = async () => {
     if (!validate() || !selectedFarmer) return;
 
@@ -82,7 +143,7 @@ const MilkEntryPage: React.FC = () => {
         date,
         shift,
         farmerId: selectedFarmer._id,
-        quantity: Number(liters), 
+        quantity: Number(liters),
         fat: Number(fat),
         snf: Number(snf),
         rate: Number(rate),
@@ -100,11 +161,6 @@ const MilkEntryPage: React.FC = () => {
     }
   };
 
-  const selectedFarmer = useMemo(
-    () => farmers.find((f) => f._id === farmerId),
-    [farmers, farmerId],
-  );
-
   const litersNum = parseFloat(liters) || 0;
   const rateNum = parseFloat(rate) || 0;
   const amount = litersNum * rateNum;
@@ -115,7 +171,10 @@ const MilkEntryPage: React.FC = () => {
     const litersVal = parseFloat(liters);
     const fatVal = parseFloat(fat);
     const snfVal = parseFloat(snf);
-    const rateVal = parseFloat(rate);
+    if (Number(rate) <= 0) {
+      alert("Rate not available for this FAT/SNF");
+      return false;
+    }
 
     if (!date) next.date = "Date is required.";
     if (!farmerId) next.farmerId = "Farmer is required.";
@@ -124,9 +183,6 @@ const MilkEntryPage: React.FC = () => {
     }
     if (!fat || Number.isNaN(fatVal)) next.fat = "Enter FAT%";
     if (!snf || Number.isNaN(snfVal)) next.snf = "Enter SNF%";
-    if (!rate || rateVal <= 0 || Number.isNaN(rateVal)) {
-      next.rate = "Rate must be greater than 0.";
-    }
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -282,7 +338,7 @@ const MilkEntryPage: React.FC = () => {
 
               {/* Third row: Rate, Total Amount, Save */}
               <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-                <InputField
+                {/* <InputField
                   label="Rate (₹)"
                   requiredLabel
                   type="number"
@@ -291,7 +347,20 @@ const MilkEntryPage: React.FC = () => {
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
                   error={errors.rate}
+                /> */}
+                {/* <InputField
+                  label="Rate (₹)"
+                  value={autoRate.toFixed(2)}
+                  readOnly
+                  helperText="Auto calculated from rate chart"
+                /> */}
+                <InputField
+                  label="Rate (₹)"
+                  value={loadingRate ? "Fetching..." : rate}
+                  readOnly
+                  helperText="Auto-calculated from rate chart"
                 />
+
                 <InputField
                   label="Total Amount (₹)"
                   value={amount.toFixed(2)}

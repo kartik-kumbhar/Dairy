@@ -38,6 +38,7 @@ const rateChartSchema = new mongoose.Schema(
     effectiveFrom: {
       type: String, // YYYY-MM-DD
       required: true,
+      default: () => new Date().toISOString().slice(0, 10),
     },
   },
   { timestamps: true },

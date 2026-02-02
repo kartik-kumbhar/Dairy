@@ -33,30 +33,15 @@ const defaultRateChart = (milkType) => {
  * GET /rate-chart
  * Fetch Cow + Buffalo rate charts
  */
-// export const getRateCharts = async (req, res) => {
-//   try {
-//     const charts = await RateChart.find();
-
-//     let cow = charts.find((c) => c.milkType === "cow");
-//     let buffalo = charts.find((c) => c.milkType === "buffalo");
-
-//     if (!cow) {
-//       cow = await RateChart.create(defaultCowObject);
-//     }
-//     if (!buffalo) {
-//       buffalo = await RateChart.create(defaultBuffaloObject);
-//     }
-
-//     return res.json({ cow, buffalo });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Failed to fetch rate charts" });
-//   }
-// };
 export const getRateCharts = async (req, res) => {
   try {
-    let cow = await RateChart.findOne({ milkType: "cow" });
-    let buffalo = await RateChart.findOne({ milkType: "buffalo" });
+    let cow = await RateChart.findOne({ milkType: "cow" }).sort({
+      effectiveFrom: -1,
+    });
+
+    let buffalo = await RateChart.findOne({ milkType: "buffalo" }).sort({
+      effectiveFrom: -1,
+    });
 
     if (!cow) {
       cow = await RateChart.create(defaultRateChart("cow"));
@@ -77,6 +62,7 @@ export const getRateCharts = async (req, res) => {
  * PUT /rate-chart/:milkType
  * Update Cow or Buffalo chart
  */
+
 export const updateRateChart = async (req, res) => {
   try {
     const { milkType } = req.params;
@@ -85,31 +71,37 @@ export const updateRateChart = async (req, res) => {
       return res.status(400).json({ message: "Invalid milk type" });
     }
 
+    const effectiveFrom =
+      req.body.effectiveFrom || new Date().toISOString().slice(0, 10);
+
+    // Save history
+    await RateChartHistory.create({
+      ...req.body,
+      milkType,
+      effectiveFrom,
+      savedBy: req.user?._id || null,
+    });
+
+    // Upsert current active chart
     // const updated = await RateChart.findOneAndUpdate(
     //   { milkType },
     //   {
     //     ...req.body,
     //     milkType,
+    //     effectiveFrom,
     //     updatedAt: new Date().toISOString(),
     //   },
-    //   { new: true, upsert: true }, // create if not exists
+    //   { new: true, upsert: true },
     // );
-
     const updated = await RateChart.findOneAndUpdate(
-      { milkType },
+      { milkType, effectiveFrom: req.body.effectiveFrom },
       {
         ...req.body,
         milkType,
-        effectiveFrom: req.body.effectiveFrom,
         updatedAt: new Date().toISOString(),
       },
       { new: true, upsert: true },
     );
-    await RateChartHistory.create({
-      ...req.body,
-      milkType,
-      savedBy: req.user._id,
-    });
 
     res.json(updated);
   } catch (err) {
@@ -139,9 +131,7 @@ export const getRateForMilk = async (req, res) => {
     const snfIndex = chart.snfs.indexOf(Number(snf));
 
     if (fatIndex === -1 || snfIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: "Rate not defined for FAT/SNF" });
+      return res.status(404).json({ message: "Rate not defined for FAT/SNF" });
     }
 
     res.json({

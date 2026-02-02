@@ -14,7 +14,4 @@ export const getRateForMilk = (params: {
   fat: number;
   snf: number;
   date: string;
-}) =>
-  api.get<{ rate: number }>("/rate-chart/rate", {
-    params,
-  });
+}) => api.get<{ rate: number }>("/rate-chart/rate", { params });
