@@ -1,51 +1,7 @@
 import Deduction from "../models/Deduction.js";
 import Farmer from "../models/Farmer.js";
+import Milk from "../models/Milk.js";
 
-// export const addDeduction = async (req, res) => {
-//   try {
-//     const farmer = await Farmer.findById(req.body.farmerId);
-//     if (!farmer) {
-//       return res.status(400).json({ message: "Invalid farmer selected" });
-//     }
-
-//     const deduction = await Deduction.create({
-//       farmerId: req.body.farmerId,
-//       date: req.body.date,
-//       type: req.body.category,
-//       amount: req.body.amount,
-//       note: req.body.description || "",
-//     });
-
-//     res.status(201).json(deduction);
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
-// };
-
-// export const addDeduction = async (req, res) => {
-//   try {
-//     const farmer = await Farmer.findById(req.body.farmerId);
-//     if (!farmer) {
-//       return res.status(400).json({ message: "Invalid farmer selected" });
-//     }
-
-//     const deduction = await Deduction.create({
-//       farmerId: req.body.farmerId,
-//       date: req.body.date,
-//       type: req.body.category,
-//       amount: req.body.amount,
-
-//       remainingAmount: req.body.amount,
-//       status: "Pending",
-
-//       note: req.body.description || "",
-//     });
-
-//     res.status(201).json(deduction);
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
-// };
 export const addDeduction = async (req, res) => {
   try {
     const farmer = await Farmer.findById(req.body.farmerId);
@@ -59,7 +15,6 @@ export const addDeduction = async (req, res) => {
       type: req.body.category,
       amount: req.body.amount,
 
-      // ✅ INITIAL VALUES
       remainingAmount: req.body.amount,
       status: "Pending",
 
@@ -69,66 +24,6 @@ export const addDeduction = async (req, res) => {
     res.status(201).json(deduction);
   } catch (err) {
     res.status(400).json({ message: err.message });
-  }
-};
-
-// export const getDeductions = async (req, res) => {
-//   try {
-//     const deductions = await Deduction.find()
-//       .populate("farmerId", "name code")
-//       .sort({ createdAt: -1 });
-
-//     const formatted = deductions
-//       .filter((d) => d.farmerId)
-//       .map((d) => ({
-//         _id: d._id,
-//         date: d.date,
-//         category: d.type,
-//         amount: d.amount,
-
-//         // 🔥 USE DB VALUES
-//         remainingAmount: d.remainingAmount,
-//         status: d.status,
-
-//         description: d.note,
-//         farmerName: d.farmerId.name,
-//         farmerCode: d.farmerId.code,
-//       }));
-
-//     res.json(formatted);
-//   } catch (err) {
-//     console.error("Get deductions failed:", err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-export const getDeductions = async (req, res) => {
-  try {
-    const deductions = await Deduction.find()
-      .populate("farmerId", "name code")
-      .sort({ createdAt: -1 });
-
-    const formatted = deductions
-      .filter((d) => d.farmerId)
-      .map((d) => ({
-        _id: d._id,
-        date: d.date,
-        category: d.type,
-        amount: d.amount,
-
-        // ✅ READ FROM DB
-        remainingAmount: d.remainingAmount,
-        status: d.status,
-
-        description: d.note,
-        farmerName: d.farmerId.name,
-        farmerCode: d.farmerId.code,
-      }));
-
-    res.json(formatted);
-  } catch (err) {
-    console.error("Get deductions failed:", err);
-    res.status(500).json({ message: err.message });
   }
 };
 
@@ -178,3 +73,128 @@ export const clearDeduction = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+// export const getDeductions = async (req, res) => {
+//   try {
+//     const deductions = await Deduction.find()
+//       .populate("farmerId", "name code");
+
+//     const formatted = await Promise.all(
+//       deductions.map(async (d) => {
+//         const deductionDate = new Date(d.date + "T23:59:59.999Z");
+
+//         const milkAgg = await Milk.aggregate([
+//           {
+//             $match: {
+//               farmerId: d.farmerId._id,
+//               $expr: {
+//                 $lte: [
+//                   { $dateFromString: { dateString: "$date" } },
+//                   deductionDate,
+//                 ],
+//               },
+//             },
+//           },
+//           {
+//             $group: {
+//               _id: null,
+//               total: { $sum: "$totalAmount" },
+//             },
+//           },
+//         ]);
+
+//         const milkAmount = milkAgg[0]?.total || 0;
+//         const remaining = Math.max(d.amount - milkAmount, 0);
+
+//         return {
+//           _id: d._id,
+//           date: d.date,
+//           category: d.type,
+//           amount: d.amount,
+//           remainingAmount: remaining,
+//           status:
+//             remaining === 0
+//               ? "Cleared"
+//               : remaining < d.amount
+//               ? "Partial"
+//               : "Pending",
+//           description: d.note,
+//           farmerName: d.farmerId.name,
+//           farmerCode: d.farmerId.code,
+//         };
+//       }),
+//     );
+
+//     res.json(formatted);
+//   } catch (err) {
+//     console.error("Deduction calc failed:", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+export const getDeductions = async (req, res) => {
+  try {
+    const deductions = await Deduction.find()
+      .populate("farmerId", "name code");
+
+    const formatted = await Promise.all(
+      deductions.map(async (d) => {
+        let remaining = d.remainingAmount;
+        let status = d.status;
+
+        // ✅ AUTO-DEDUCT MILK ONLY ONCE
+        if (!d.autoAdjusted) {
+          const milkAgg = await Milk.aggregate([
+            {
+              $match: {
+                farmerId: d.farmerId._id,
+                date: { $lte: d.date }, // STRING comparison OK (YYYY-MM-DD)
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$totalAmount" },
+              },
+            },
+          ]);
+
+          const milkAmount = milkAgg[0]?.total || 0;
+
+          remaining = Math.max(d.amount - milkAmount, 0);
+          status =
+            remaining === 0
+              ? "Cleared"
+              : remaining < d.amount
+              ? "Partial"
+              : "Pending";
+
+          // 🔥 SAVE ONCE
+          await Deduction.findByIdAndUpdate(d._id, {
+            remainingAmount: remaining,
+            status,
+            autoAdjusted: true,
+          });
+        }
+
+        return {
+          _id: d._id,
+          date: d.date,
+          category: d.type,
+          amount: d.amount,
+          remainingAmount: remaining,
+          status,
+          description: d.note,
+          farmerName: d.farmerId.name,
+          farmerCode: d.farmerId.code,
+        };
+      })
+    );
+
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

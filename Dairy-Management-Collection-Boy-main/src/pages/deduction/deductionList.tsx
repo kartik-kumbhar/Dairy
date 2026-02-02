@@ -16,6 +16,7 @@ import {
   getDeductions,
   deleteDeduction as deleteDeductionAPI,
 } from "../../axios/deduction_api";
+import { api } from "../../axios/axiosInstance";
 
 // const DEDUCTION_KEY = "dairy_deductions";
 
@@ -158,16 +159,19 @@ const DeductionListPage: React.FC = () => {
       newRemaining <= 0 ? "Cleared" : "Partial";
 
     //  SAVE TO BACKEND (THIS WAS MISSING)
-    await fetch(`https://dairy-back.vercel.app/api/deductions/${adjustDeduction._id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
+    await fetch(
+      `https://dairy-back.vercel.app/api/deductions/${adjustDeduction._id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          remainingAmount: newRemaining,
+          status: newStatus,
+        }),
       },
-      body: JSON.stringify({
-        remainingAmount: newRemaining,
-        status: newStatus,
-      }),
-    });
+    );
 
     // 🔁 RELOAD FROM BACKEND
     const res = await getDeductions();
@@ -176,24 +180,10 @@ const DeductionListPage: React.FC = () => {
     setAdjustDeduction(null);
   };
 
-  // const markCleared = (d: Deduction) => {
-  //   setDeductions((prev) =>
-  //     prev.map((x) =>
-  //       x._id === d._id ? { ...x, remainingAmount: 0, status: "Cleared" } : x,
-  //     ),
-  //   );
-  // };
   const markCleared = async (d: Deduction) => {
-    // SAVE TO BACKEND
-    await fetch(`https://dairy-back.vercel.app/api/deductions/clear/${d._id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        remainingAmount: 0,
-        status: "Cleared",
-      }),
+    await api.patch(`/deductions/clear/${d._id}`, {
+      remainingAmount: 0,
+      status: "Cleared",
     });
 
     // 🔁 RELOAD FROM BACKEND

@@ -9,8 +9,6 @@ export type AddDeductionRequest = {
   description?: string;
 };
 
-
-
 export const addDeduction = (data: AddDeductionRequest) =>
   api.post<Deduction>("/deductions", data);
 

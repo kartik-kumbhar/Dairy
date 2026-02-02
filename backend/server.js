@@ -29,7 +29,6 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow server-to-server / Postman / SSR
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [

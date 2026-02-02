@@ -29,6 +29,10 @@ const deductionSchema = new mongoose.Schema(
       enum: ["Pending", "Partial", "Cleared"],
       default: "Pending",
     },
+    autoAdjusted: {
+      type: Boolean,
+      default: false,
+    },
 
     note: {
       type: String,
