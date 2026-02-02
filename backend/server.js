@@ -11,17 +11,38 @@ import inventoryRoutes from "./routes/inventory_routes.js";
 import bonusRoutes from "./routes/bonus_routes.js";
 import billRoutes from "./routes/bill_routes.js";
 import dashboardRoutes from "./routes/dashboard_routes.js";
-import rateChartRoutes from "./routes/rateChart_routes.js"
+import rateChartRoutes from "./routes/rateChart_routes.js";
 
-dotenv.config({debug:false});
+dotenv.config({ debug: false });
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
 
+// app.use(
+//   cors({
+//     origin: "https://dairy-eo1r.vercel.app",
+//     credentials: true,
+//   }),
+// );
+
 app.use(
   cors({
-    origin: "https://dairy-eo1r.vercel.app",
+    origin: (origin, callback) => {
+      // allow server-to-server / Postman / SSR
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        "https://dairy-eo1r.vercel.app",
+        "http://localhost:5173",
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
@@ -34,14 +55,13 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", router);
 app.use("/api/farmers", farmerRoutes);
-app.use("/api/milk", milkRoutes)
+app.use("/api/milk", milkRoutes);
 app.use("/api/deductions", deductionRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/bonus", bonusRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rate-chart", rateChartRoutes);
-
 
 const PORT = process.env.PORT;
 
