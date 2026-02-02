@@ -125,16 +125,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
 
       await addMilkEntryAPI({
-        date: input.date,
-        shift: input.shift,
-        farmerId: input.farmerId,
-        milkType: input.milkType,
-        liters: input.liters,
-        fat: input.fat,
-        snf: input.snf,
-        rate: input.rate,
-        remarks: input.remarks?.trim() || undefined,
-      });
+  date: input.date,
+  shift: input.shift,
+  farmerId: input.farmerId,
+  // milkType: input.milkType, 
+  quantity: input.liters,
+  fat: input.fat,
+  snf: input.snf,
+  rate: input.rate,
+});
 
       await reloadAll();
     } catch (error) {
