@@ -158,7 +158,7 @@ const DeductionListPage: React.FC = () => {
       newRemaining <= 0 ? "Cleared" : "Partial";
 
     //  SAVE TO BACKEND (THIS WAS MISSING)
-    await fetch(`http://localhost:5000/api/deductions/${adjustDeduction._id}`, {
+    await fetch(`https://dairy-back.vercel.app/api/deductions/${adjustDeduction._id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -185,7 +185,7 @@ const DeductionListPage: React.FC = () => {
   // };
   const markCleared = async (d: Deduction) => {
     // SAVE TO BACKEND
-    await fetch(`http://localhost:5000/api/deductions/clear/${d._id}`, {
+    await fetch(`https://dairy-back.vercel.app/api/deductions/clear/${d._id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
