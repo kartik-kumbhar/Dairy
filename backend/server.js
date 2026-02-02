@@ -21,7 +21,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "https://dairy-eo1r.vercel.app/dashboard",
+    origin: "https://dairy-eo1r.vercel.app/",
     credentials: true,
   }),
 );
