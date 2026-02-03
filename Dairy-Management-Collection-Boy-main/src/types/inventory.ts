@@ -1,11 +1,13 @@
 // src/types/inventory.ts
 
-export type InventoryCategory =
-  | "Feed"
-  | "Equipment"
-  | "Testing"
-  | "Stationery"
-  | "Other";
+// export type InventoryCategory =
+//   | "Feed"
+//   | "Equipment"
+//   | "Testing"
+//   | "Stationery"
+//   | "Other";
+
+export type InventoryCategory = string;
 
 export type InventoryMovementType = "In" | "Out";
 

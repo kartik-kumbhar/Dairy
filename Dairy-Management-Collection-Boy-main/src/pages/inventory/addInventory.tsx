@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import InputField from "../../components/inputField";
-import SelectField from "../../components/selectField";
-import type { InventoryCategory, InventoryItem } from "../../types/inventory";
+// import SelectField from "../../components/selectField";
+import type { InventoryItem } from "../../types/inventory";
 import { addInventoryItem, getInventoryItems } from "../../axios/inventory_api";
 
 function generateNextCode(items: InventoryItem[]): string {
@@ -20,7 +20,8 @@ const AddInventoryPage: React.FC = () => {
   const [code, setCode] = useState<string>("");
 
   const [name, setName] = useState<string>("");
-  const [category, setCategory] = useState<InventoryCategory>("Feed");
+  // const [category, setCategory] = useState<InventoryCategory>("Feed");
+  const [category, setCategory] = useState<string>("");
   const [unit, setUnit] = useState<string>("Kg");
   const [openingStock, setOpeningStock] = useState<string>("");
   const [minStock, setMinStock] = useState<string>("0");
@@ -139,7 +140,7 @@ const AddInventoryPage: React.FC = () => {
                 onChange={(e) => setName(e.target.value)}
                 error={errors.name}
               />
-              <SelectField
+              {/* <SelectField
                 label="Category"
                 value={category}
                 onChange={(e) =>
@@ -152,7 +153,16 @@ const AddInventoryPage: React.FC = () => {
                   { label: "Stationery", value: "Stationery" },
                   { label: "Other", value: "Other" },
                 ]}
+              /> */}
+              <InputField
+                label="Category"
+                requiredLabel
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Feed / Equipment / Medicine / Testing /Stationery /Other"
+                helperText="You can enter a custom category"
               />
+
               <InputField
                 label="Unit"
                 requiredLabel

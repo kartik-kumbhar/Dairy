@@ -13,10 +13,15 @@ const inventorySchema = new mongoose.Schema(
       required: true,
     },
 
+    // category: {
+    //   type: String,
+    //   enum: ["Feed", "Equipment", "Testing", "Stationery", "Other"],
+    //   default: "Other",
+    // },
     category: {
       type: String,
-      enum: ["Feed", "Equipment", "Testing", "Stationery", "Other"],
-      default: "Other",
+      required: true,
+      trim: true,
     },
 
     unit: {

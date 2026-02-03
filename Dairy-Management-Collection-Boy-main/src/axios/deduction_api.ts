@@ -12,8 +12,7 @@ export type AddDeductionRequest = {
 export const addDeduction = (data: AddDeductionRequest) =>
   api.post<Deduction>("/deductions", data);
 
-export const getDeductions = () =>
-  api.get<Deduction[]>("/deductions");
+export const getDeductions = () => api.get<Deduction[]>("/deductions");
 
 export const deleteDeduction = (id: string) =>
   api.delete<{ message: string }>(`/deductions/${id}`);

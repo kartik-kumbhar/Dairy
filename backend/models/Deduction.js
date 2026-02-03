@@ -10,16 +10,20 @@ const deductionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    type: {
+    // type: {
+    //   type: String,
+    //   required: true,
+    // },
+    category: {
       type: String,
       required: true,
+      trim: true,
     },
+
     amount: {
       type: Number,
       required: true,
     },
-
-    // ✅ ADD THESE
     remainingAmount: {
       type: Number,
       required: true,

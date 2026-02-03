@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import InputField from "../../components/inputField";
 import SelectField from "../../components/selectField";
 import Loader from "../../components/loader";
-import type { DeductionCategory } from "../../types/deduction";
+// import type { DeductionCategory } from "../../types/deduction";
 import type { Farmer } from "../../types/farmer";
 import { getFarmers } from "../../axios/farmer_api";
 import { addDeduction } from "../../axios/deduction_api";
@@ -20,7 +20,8 @@ const AddDeductionPage: React.FC = () => {
   // Form fields
   const [date, setDate] = useState<string>(todayISO);
   const [farmerId, setFarmerId] = useState<string>("");
-  const [category, setCategory] = useState<DeductionCategory>("Advance");
+  // const [category, setCategory] = useState<DeductionCategory>("Advance");
+  const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 
@@ -154,7 +155,7 @@ const AddDeductionPage: React.FC = () => {
                   ]}
                   error={errors.farmerId}
                 />
-                <SelectField
+                {/* <SelectField
                   label="Category"
                   value={category}
                   onChange={(e) =>
@@ -165,6 +166,13 @@ const AddDeductionPage: React.FC = () => {
                     { label: "Food", value: "Food" },
                     { label: "Medical", value: "Medical" },
                   ]}
+                /> */}
+                <InputField
+                  label="Category"
+                  requiredLabel
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Advance / Food / Medical / Other"
                 />
               </div>
 
