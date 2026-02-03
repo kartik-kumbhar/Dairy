@@ -43,5 +43,6 @@ const rateChartSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+rateChartSchema.index({ milkType: 1, effectiveFrom: 1 }, { unique: true });
 
 export default mongoose.model("RateChart", rateChartSchema);

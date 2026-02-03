@@ -83,30 +83,6 @@ const MilkEntryPage: React.FC = () => {
     load();
   }, []);
 
-  // useEffect(() => {
-  //   const fetchRate = async () => {
-  //     if (!selectedFarmer || !fat || !snf || !date) {
-  //       setAutoRate(0);
-  //       return;
-  //     }
-
-  //     try {
-  //       const res = await getRateForMilk({
-  //         milkType: selectedFarmer.milkType,
-  //         fat: Number(fat),
-  //         snf: Number(snf),
-  //         date,
-  //       });
-
-  //       setAutoRate(res.data.rate);
-  //     } catch {
-  //       setAutoRate(0);
-  //     }
-  //   };
-
-  //   fetchRate();
-  // }, [selectedFarmer, fat, snf, date]);
-
   useEffect(() => {
     const fetchRate = async () => {
       if (!selectedFarmer || !fat || !snf || !date) return;
@@ -320,6 +296,7 @@ const MilkEntryPage: React.FC = () => {
                   type="number"
                   step="0.1"
                   min="0"
+                  placeholder="must be > 3"
                   value={fat}
                   onChange={(e) => setFat(e.target.value)}
                   error={errors.fat}
@@ -329,11 +306,14 @@ const MilkEntryPage: React.FC = () => {
                   requiredLabel
                   type="number"
                   step="0.1"
-                  min="0"
+                  min={7}
+                  max={9.5}
+                  placeholder="must be > 7"
                   value={snf}
                   onChange={(e) => setSnf(e.target.value)}
                   error={errors.snf}
                 />
+                
               </div>
 
               {/* Third row: Rate, Total Amount, Save */}

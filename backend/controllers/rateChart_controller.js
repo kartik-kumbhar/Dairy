@@ -25,9 +25,11 @@ const defaultRateChart = (milkType) => {
     baseRate,
     fatFactor,
     snfFactor,
+    effectiveFrom: new Date().toISOString().slice(0, 10), 
     updatedAt: new Date().toISOString(),
   };
 };
+
 
 /**
  * GET /rate-chart
@@ -74,41 +76,40 @@ export const updateRateChart = async (req, res) => {
     const effectiveFrom =
       req.body.effectiveFrom || new Date().toISOString().slice(0, 10);
 
-    // Save history
+    // ✅ REMOVE _id BEFORE SAVING HISTORY
+    const { _id, ...historyData } = req.body;
+
     await RateChartHistory.create({
-      ...req.body,
+      ...historyData,
       milkType,
       effectiveFrom,
       savedBy: req.user?._id || null,
+      createdAt: new Date(),
     });
 
-    // Upsert current active chart
-    // const updated = await RateChart.findOneAndUpdate(
-    //   { milkType },
-    //   {
-    //     ...req.body,
-    //     milkType,
-    //     effectiveFrom,
-    //     updatedAt: new Date().toISOString(),
-    //   },
-    //   { new: true, upsert: true },
-    // );
     const updated = await RateChart.findOneAndUpdate(
-      { milkType, effectiveFrom: req.body.effectiveFrom },
+      { milkType, effectiveFrom },
       {
-        ...req.body,
+        ...historyData,
         milkType,
+        effectiveFrom,
         updatedAt: new Date().toISOString(),
       },
-      { new: true, upsert: true },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      },
     );
 
     res.json(updated);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to update rate chart" });
+    console.error("Rate chart update failed:", err);
+    res.status(500).json({ message: err.message });
   }
 };
+
+
 
 export const getRateForMilk = async (req, res) => {
   try {

@@ -1,22 +1,20 @@
 import mongoose from "mongoose";
 
-const rateChartHistorySchema = new mongoose.Schema({
-  milkType: String,
-  fats: [Number],
-  snfs: [Number],
-  rates: [[Number]],
-  baseRate: Number,
-  fatFactor: Number,
-  snfFactor: Number,
-  effectiveFrom: String,
-  savedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+const rateChartHistorySchema = new mongoose.Schema(
+  {
+    milkType: { type: String, enum: ["cow", "buffalo"], required: true },
+    effectiveFrom: { type: String, required: true },
+
+    fats: [Number],
+    snfs: [Number],
+    rates: [[Number]],
+    baseRate: Number,
+    fatFactor: Number,
+    snfFactor: Number,
+
+    savedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  savedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true },
+);
 
 export default mongoose.model("RateChartHistory", rateChartHistorySchema);
