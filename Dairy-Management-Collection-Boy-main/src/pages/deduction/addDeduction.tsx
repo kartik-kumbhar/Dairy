@@ -20,7 +20,6 @@ const AddDeductionPage: React.FC = () => {
   // Form fields
   const [date, setDate] = useState<string>(todayISO);
   const [farmerId, setFarmerId] = useState<string>("");
-  // const [category, setCategory] = useState<DeductionCategory>("Advance");
   const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState<string>("");
