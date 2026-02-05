@@ -3,10 +3,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import StatCard from "../../components/statCard";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
 
-import { StorageKey } from "../../storage/storageKeys";
-import { getJSON } from "../../storage/localStorage";
-import type { MilkCollection } from "../../types/milkCollection";
-import type { Farmer } from "../../types/farmer";
+import ReportSwitcher from "../../components/ReportSwitcher";
+import { getMonthlyMilkReport } from "../../axios/report_api";
+import type { MonthlyMilkReportResponse } from "../../axios/report_api";
+
+import { useNavigate } from "react-router-dom";
 
 interface DaySummary {
   date: string;
@@ -29,116 +30,44 @@ const MonthlyReportPage: React.FC = () => {
     [today],
   );
 
-  const [allCollections, setAllCollections] = useState<MilkCollection[]>([]);
-  const [, setFarmers] = useState<Farmer[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
+  const [report, setReport] = useState<MonthlyMilkReportResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const collections = getJSON<MilkCollection[]>(
-      StorageKey.MilkCollections,
-      [],
-    );
-    const farmersList = getJSON<Farmer[]>(StorageKey.Farmers, []);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAllCollections(collections);
-    setFarmers(farmersList);
-  }, []);
-
-  const monthCollections = useMemo(
-    () => allCollections.filter((c) => c.date.slice(0, 7) === selectedMonth),
-    [allCollections, selectedMonth],
-  );
-
-  const stats = useMemo(() => {
-    let liters = 0;
-    let amount = 0;
-    let cowLiters = 0;
-    let buffaloLiters = 0;
-
-    const uniqueDays = new Set<string>();
-    const uniqueFarmers = new Set<string>();
-
-    monthCollections.forEach((c) => {
-      liters += c.liters;
-      amount += c.amount;
-      uniqueDays.add(c.date);
-      uniqueFarmers.add(c.farmerId);
-      if (c.milkType === "cow") cowLiters += c.liters;
-      if (c.milkType === "buffalo") buffaloLiters += c.liters;
-    });
-
-    return {
-      liters,
-      amount,
-      cowLiters,
-      buffaloLiters,
-      dayCount: uniqueDays.size,
-      farmerCount: uniqueFarmers.size,
-      collectionCount: monthCollections.length,
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await getMonthlyMilkReport(selectedMonth);
+        setReport(res.data);
+      } catch (err) {
+        console.error("Monthly report failed", err);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [monthCollections]);
 
-  // Build per-day summary
-  const dayRows: DaySummary[] = useMemo(() => {
-    const map = new Map<string, DaySummary>();
-    monthCollections.forEach((c) => {
-      const existing = map.get(c.date);
-      if (!existing) {
-        map.set(c.date, {
-          date: c.date,
-          liters: c.liters,
-          amount: c.amount,
-        });
-      } else {
-        existing.liters += c.liters;
-        existing.amount += c.amount;
-      }
-    });
-    const list = Array.from(map.values());
-    list.sort((a, b) => a.date.localeCompare(b.date));
-    return list;
-  }, [monthCollections]);
-
-  // Build per-farmer summary
-  const farmerRows: FarmerSummary[] = useMemo(() => {
-    const map = new Map<string, FarmerSummary>();
-    monthCollections.forEach((c) => {
-      const key = c.farmerId;
-      const existing = map.get(key);
-      if (!existing) {
-        map.set(key, {
-          farmerId: c.farmerId,
-          farmerCode: c.farmerCode,
-          farmerName: c.farmerName,
-          liters: c.liters,
-          amount: c.amount,
-        });
-      } else {
-        existing.liters += c.liters;
-        existing.amount += c.amount;
-      }
-    });
-    const list = Array.from(map.values());
-    list.sort((a, b) => a.farmerName.localeCompare(b.farmerName));
-    return list;
-  }, [monthCollections]);
+    load();
+  }, [selectedMonth]);
 
   const dayColumns: DataTableColumn<DaySummary>[] = [
     {
       id: "date",
       header: "Date",
+      align: "center",
       accessor: "date",
     },
     {
       id: "liters",
       header: "Total Liters",
-      align: "right",
+      align: "center",
       cell: (row) => row.liters.toFixed(2),
     },
     {
       id: "amount",
       header: "Total Amount",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.amount.toFixed(2)}`,
     },
   ];
@@ -147,23 +76,25 @@ const MonthlyReportPage: React.FC = () => {
     {
       id: "code",
       header: "Farmer Code",
+      align: "center",
       accessor: "farmerCode",
     },
     {
       id: "name",
       header: "Farmer Name",
+      align: "center",
       accessor: "farmerName",
     },
     {
       id: "liters",
       header: "Total Liters",
-      align: "right",
+      align: "center",
       cell: (row) => row.liters.toFixed(2),
     },
     {
       id: "amount",
       header: "Total Amount",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.amount.toFixed(2)}`,
     },
   ];
@@ -199,80 +130,107 @@ const MonthlyReportPage: React.FC = () => {
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[#E9E2C8] bg-white px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F]"
+              className="mt-1 w-full rounded-md border border-[#E9E2C8] bg-white px-3 py-2 text-sm text-[#5E503F]"
             />
           </div>
+        </div>
+        <ReportSwitcher />
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/reports/daily")}
+            className="px-4 py-1.5 text-sm rounded-md bg-[#E9E2C8] text-[#5E503F]"
+          >
+            Daily
+          </button>
+
+          <button
+            onClick={() => navigate("/reports/monthly")}
+            className="px-4 py-1.5 text-sm rounded-md bg-[#2A9D8F] text-white"
+          >
+            Monthly
+          </button>
         </div>
 
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Liters"
-            value={stats.liters.toFixed(2)}
+            value={report?.totalLiters.toFixed(2) ?? "0.00"}
             subtitle={monthLabel}
             variant="teal"
           />
           <StatCard
             title="Total Amount (₹)"
-            value={stats.amount.toFixed(2)}
+            value={report?.totalAmount.toFixed(2) ?? "0.00"}
             subtitle={monthLabel}
             variant="blue"
           />
           <StatCard
             title="Cow / Buffalo (L)"
-            value={`${stats.cowLiters.toFixed(
-              1,
-            )} / ${stats.buffaloLiters.toFixed(1)}`}
+            value={`${report?.cowLiters ?? 0} / ${report?.buffaloLiters ?? 0}`}
             subtitle="Cow / Buffalo"
             variant="orange"
           />
-          <StatCard
+          {/* <StatCard
             title="Days / Farmers / Entries"
             value={`${stats.dayCount} / ${stats.farmerCount} / ${stats.collectionCount}`}
+            subtitle="Days / Farmers / Collections"
+            variant="green"
+          /> */}
+          <StatCard
+            title="Days / Farmers / Entries"
+            value={`${report?.dayCount ?? 0} / ${report?.farmerCount ?? 0} / ${report?.entryCount ?? 0}`}
             subtitle="Days / Farmers / Collections"
             variant="green"
           />
         </div>
 
-        {/* Per-day summary */}
-        <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#5E503F]">
-              Daily Summary ({monthLabel})
-            </h2>
-            <span className="text-xs text-[#5E503F]/60">
-              Total liters & amount by day.
-            </span>
-          </div>
-          <DataTable
-            data={dayRows}
-            columns={dayColumns}
-            keyField="date"
-            dense
-            striped
-            emptyMessage="No milk collection entries in this month."
-          />
-        </div>
+        {loading ? (
+          <p className="text-sm text-[#5E503F]/60">Loading...</p>
+        ) : (
+          <>
+            {/* Per-day summary */}
+            <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[#5E503F]">
+                  Daily Summary ({monthLabel})
+                </h2>
+                <span className="text-xs text-[#5E503F]/60">
+                  Total liters & amount by day.
+                </span>
+              </div>
+              <DataTable
+                data={report?.dayRows ?? []}
+                columns={dayColumns}
+                keyField="date"
+                dense
+                striped
+                emptyMessage="No milk collection entries in this month."
+              />
+            </div>
 
-        {/* Per-farmer summary */}
-        <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#5E503F]">
-              Farmer Summary ({monthLabel})
-            </h2>
-            <span className="text-xs text-[#5E503F]/60">
-              Total liters & amount by farmer.
-            </span>
-          </div>
-          <DataTable
-            data={farmerRows}
-            columns={farmerColumns}
-            keyField="farmerId"
-            dense
-            striped
-            emptyMessage="No farmer collection entries in this month."
-          />
-        </div>
+            {/* Per-farmer summary */}
+            <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[#5E503F]">
+                  Farmer Summary ({monthLabel})
+                </h2>
+                <span className="text-xs text-[#5E503F]/60">
+                  Total liters & amount by farmer.
+                </span>
+              </div>
+              <DataTable
+                data={report?.farmerRows ?? []}
+                columns={farmerColumns}
+                keyField="farmerId"
+                dense
+                striped
+                emptyMessage="No farmer collection entries in this month."
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

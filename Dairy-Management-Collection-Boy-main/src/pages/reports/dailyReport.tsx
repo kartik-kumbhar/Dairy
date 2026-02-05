@@ -3,145 +3,132 @@ import React, { useEffect, useMemo, useState } from "react";
 import StatCard from "../../components/statCard";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
 import InputField from "../../components/inputField";
+import ReportSwitcher from "../../components/ReportSwitcher";
 
-import { StorageKey } from "../../storage/storageKeys";
-import { getJSON } from "../../storage/localStorage";
-import type { MilkCollection, MilkShift } from "../../types/milkCollection";
-import type { Farmer } from "../../types/farmer";
+import type { MilkShift } from "../../types/milkCollection";
+import { getDailyReport } from "../../axios/report_api";
+import type { DailyReportResponse } from "../../axios/report_api";
+type DailyReportEntry = DailyReportResponse["entries"][number];
 
 const DailyReportPage: React.FC = () => {
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
-
-  const [allCollections, setAllCollections] = useState<MilkCollection[]>([]);
-  const [, setFarmers] = useState<Farmer[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
+  const [report, setReport] = useState<DailyReportResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [shiftFilter, setShiftFilter] = useState<MilkShift | "All">("All");
 
   useEffect(() => {
-    const collections = getJSON<MilkCollection[]>(
-      StorageKey.MilkCollections,
-      [],
-    );
-    const farmersList = getJSON<Farmer[]>(StorageKey.Farmers, []);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAllCollections(collections);
-    setFarmers(farmersList);
-  }, []);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await getDailyReport(selectedDate);
+        setReport(res.data);
+      } catch (err) {
+        console.error("Failed to load daily report", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const collectionsForDay = useMemo(
-    () => allCollections.filter((c) => c.date === selectedDate),
-    [allCollections, selectedDate],
-  );
+    load();
+  }, [selectedDate]);
 
   const stats = useMemo(() => {
-    let totalLiters = 0;
-    let totalAmount = 0;
-    let cowLiters = 0;
-    let buffaloLiters = 0;
+    if (!report) {
+      return {
+        totalLiters: 0,
+        totalAmount: 0,
+        cowLiters: 0,
+        buffaloLiters: 0,
+        morningLiters: 0,
+        eveningLiters: 0,
+        farmerCount: 0,
+        collectionCount: 0,
+      };
+    }
+
     let morningLiters = 0;
     let eveningLiters = 0;
+    const farmers = new Set<string>();
 
-    const uniqueFarmerIds = new Set<string>();
-
-    collectionsForDay.forEach((c) => {
-      totalLiters += c.liters;
-      totalAmount += c.amount;
-      uniqueFarmerIds.add(c.farmerId);
-
-      if (c.milkType === "cow") cowLiters += c.liters;
-      if (c.milkType === "buffalo") buffaloLiters += c.liters;
-
-      if (c.shift === "Morning") morningLiters += c.liters;
-      if (c.shift === "Evening") eveningLiters += c.liters;
+    report.entries.forEach((e) => {
+      farmers.add(e.farmerId._id);
+      if (e.shift === "Morning") morningLiters += e.quantity;
+      if (e.shift === "Evening") eveningLiters += e.quantity;
     });
 
     return {
-      totalLiters,
-      totalAmount,
-      cowLiters,
-      buffaloLiters,
+      totalLiters: report.totalLiters,
+      totalAmount: report.totalAmount,
+      cowLiters: report.cowLiters,
+      buffaloLiters: report.buffaloLiters,
       morningLiters,
       eveningLiters,
-      farmerCount: uniqueFarmerIds.size,
-      collectionCount: collectionsForDay.length,
+      farmerCount: farmers.size,
+      collectionCount: report.entries.length,
     };
-  }, [collectionsForDay]);
+  }, [report]);
 
-  const columns: DataTableColumn<MilkCollection>[] = [
+  const columns: DataTableColumn<DailyReportEntry>[] = [
     {
-      id: "time",
+      id: "shift",
       header: "Shift",
+      align: "center",
       accessor: "shift",
-    },
-    {
-      id: "farmerCode",
-      header: "Farmer Code",
-      accessor: "farmerCode",
     },
     {
       id: "farmerName",
       header: "Farmer Name",
-      accessor: "farmerName",
+      align: "center",
+      cell: (row) => row.farmerId.name,
     },
     {
-      id: "milkType",
-      header: "Milk Type",
-      cell: (row) => (
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-            row.milkType === "cow"
-              ? "bg-[#E76F51]/10 text-[#E76F51]"
-              : "bg-[#457B9D]/10 text-[#457B9D]"
-          }`}
-        >
-          {row.milkType === "cow" ? "🐄" : "🐃"} {row.milkType}
-        </span>
-      ),
+      id: "mobile",
+      header: "Mobile",
+      align: "center",
+      cell: (row) => row.farmerId.mobile,
     },
     {
-      id: "liters",
+      id: "quantity",
       header: "Liters",
-      align: "right",
-      cell: (row) => row.liters.toFixed(2),
+      align: "center",
+      cell: (row) => row.quantity.toFixed(2),
     },
     {
       id: "fat",
       header: "FAT %",
-      align: "right",
-      cell: (row) => row.fat.toFixed(1),
+      align: "center",
+      cell: (row) => (row.fat ?? 0).toFixed(1),
     },
     {
       id: "snf",
       header: "SNF %",
-      align: "right",
-      cell: (row) => row.snf.toFixed(1),
+      align: "center",
+      cell: (row) => (row.snf ?? 0).toFixed(1),
     },
     {
       id: "rate",
       header: "Rate",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.rate.toFixed(2)}`,
     },
     {
-      id: "amount",
+      id: "totalAmount",
       header: "Amount",
-      align: "right",
-      cell: (row) => `₹ ${row.amount.toFixed(2)}`,
+      align: "center",
+      cell: (row) => `₹ ${row.totalAmount.toFixed(2)}`,
     },
   ];
 
-  const handleQuickShiftFilter = (shift: MilkShift | "All") => {
-    if (shift === "All") {
-      // nothing, table will show all; we could add separate filter if needed
-      return;
-    }
-    // Simple implementation: not storing separate filter; just scroll to first row
-    const index = collectionsForDay.findIndex((c) => c.shift === shift);
-    if (index !== -1) {
-      const rowId = `row-${collectionsForDay[index]._id}`;
-      const el = document.getElementById(rowId);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  const tableData = useMemo(() => {
+    if (!report) return [];
+
+    if (shiftFilter === "All") return report.entries;
+
+    return report.entries.filter(
+      (e) => e.shift?.toLowerCase() === shiftFilter.toLowerCase(),
+    );
+  }, [report, shiftFilter]);
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
@@ -162,6 +149,21 @@ const DailyReportPage: React.FC = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
             />
           </div>
+        </div>
+
+        <ReportSwitcher />
+
+        <div className="flex gap-2">
+          <button className="px-4 py-1.5 text-sm rounded-md bg-[#2A9D8F] text-white">
+            Daily
+          </button>
+
+          <button
+            onClick={() => (window.location.href = "/reports/monthly")}
+            className="px-4 py-1.5 text-sm rounded-md bg-[#E9E2C8] text-[#5E503F]"
+          >
+            Monthly
+          </button>
         </div>
 
         {/* Stat cards */}
@@ -199,41 +201,66 @@ const DailyReportPage: React.FC = () => {
           <span className="text-xs font-medium text-[#5E503F]">
             Quick Shift Focus:
           </span>
+
           <button
             type="button"
-            onClick={() => handleQuickShiftFilter("All")}
-            className="rounded-md bg-[#E9E2C8] px-3 py-1.5 text-xs text-[#5E503F]"
+            onClick={() => setShiftFilter("All")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+              shiftFilter === "All"
+                ? "bg-[#2A9D8F] text-white"
+                : "bg-[#E9E2C8] text-[#5E503F]"
+            }`}
           >
             All
           </button>
+
           <button
             type="button"
-            onClick={() => handleQuickShiftFilter("Morning")}
-            className="rounded-md bg-[#E9E2C8] px-3 py-1.5 text-xs text-[#5E503F]"
+            onClick={() => setShiftFilter("Morning")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+              shiftFilter === "Morning"
+                ? "bg-[#2A9D8F] text-white"
+                : "bg-[#E9E2C8] text-[#5E503F]"
+            }`}
           >
             Morning
           </button>
+
           <button
             type="button"
-            onClick={() => handleQuickShiftFilter("Evening")}
-            className="rounded-md bg-[#E9E2C8] px-3 py-1.5 text-xs text-[#5E503F]"
+            onClick={() => setShiftFilter("Evening")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+              shiftFilter === "Evening"
+                ? "bg-[#2A9D8F] text-white"
+                : "bg-[#E9E2C8] text-[#5E503F]"
+            }`}
           >
             Evening
           </button>
+
           <span className="text-xs text-[#5E503F]/60">
             (Scrolls to first entry of that shift)
           </span>
         </div>
 
-        {/* Table */}
-        <DataTable
-          data={collectionsForDay}
-          columns={columns}
-          keyField="_id"
-          striped
-          dense
-          emptyMessage="No milk collection entries for the selected date."
-        />
+        {loading ? (
+          <div className="py-10 text-center text-sm text-[#5E503F]/60">
+            Loading report...
+          </div>
+        ) : (
+          <>
+            {/* Table */}
+            <DataTable
+              // data={report?.entries ?? []}
+              data={tableData}
+              columns={columns}
+              keyField="_id"
+              striped
+              dense
+              emptyMessage="No milk collection entries for the selected date."
+            />
+          </>
+        )}
       </div>
     </div>
   );

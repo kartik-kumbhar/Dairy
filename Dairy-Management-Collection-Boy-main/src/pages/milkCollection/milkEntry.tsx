@@ -296,7 +296,7 @@ const MilkEntryPage: React.FC = () => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="must be > 3"
+                  helperText=" must be > 3"
                   value={fat}
                   onChange={(e) => setFat(e.target.value)}
                   error={errors.fat}
@@ -308,7 +308,7 @@ const MilkEntryPage: React.FC = () => {
                   step="0.1"
                   min={7}
                   max={9.5}
-                  placeholder="must be > 7"
+                  helperText=" must be > 7"
                   value={snf}
                   onChange={(e) => setSnf(e.target.value)}
                   error={errors.snf}
