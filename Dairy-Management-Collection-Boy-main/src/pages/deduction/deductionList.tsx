@@ -17,6 +17,7 @@ import {
   deleteDeduction as deleteDeductionAPI,
 } from "../../axios/deduction_api";
 import { api } from "../../axios/axiosInstance";
+import toast from "react-hot-toast";
 
 // const DEDUCTION_KEY = "dairy_deductions";
 
@@ -60,15 +61,12 @@ const DeductionListPage: React.FC = () => {
         setDeductions(res.data);
       } catch (err) {
         console.error("Failed to load deductions:", err);
+        toast.error("Failed to load deductions");
       }
     };
 
     load();
   }, []);
-
-  // useEffect(() => {
-  //   saveDeductions(deductions);
-  // }, [deductions]);
 
   const filteredDeductions = useMemo(() => {
     return deductions.filter((d) => {
@@ -134,9 +132,12 @@ const DeductionListPage: React.FC = () => {
   }, [deductions]);
 
   const openAdjustModal = (d: Deduction) => {
-    console.log("Adjust clicked", d.remainingAmount);
+    // console.log("Adjust clicked", d.remainingAmount);
 
-    if (d.remainingAmount <= 0) return;
+    if (d.remainingAmount <= 0) {
+      toast("This deduction is already cleared");
+      return;
+    }
     setAdjustDeduction(d);
     setAdjustAmount(d.remainingAmount.toFixed(2));
   };
@@ -146,11 +147,11 @@ const DeductionListPage: React.FC = () => {
 
     const amt = parseFloat(adjustAmount);
     if (!amt || amt <= 0) {
-      alert("Adjustment amount must be greater than 0.");
+      toast.error("Adjustment amount must be greater than 0.");
       return;
     }
     if (amt > adjustDeduction.remainingAmount) {
-      alert("Adjustment amount cannot exceed remaining amount.");
+      toast.error("Adjustment amount cannot exceed remaining amount.");
       return;
     }
 
@@ -172,8 +173,9 @@ const DeductionListPage: React.FC = () => {
         }),
       },
     );
+    toast.success("Deduction adjusted successfully");
 
-    // 🔁 RELOAD FROM BACKEND
+    //  RELOAD FROM BACKEND
     const res = await getDeductions();
     setDeductions(res.data);
 
@@ -185,8 +187,9 @@ const DeductionListPage: React.FC = () => {
       remainingAmount: 0,
       status: "Cleared",
     });
+    toast.success("Deduction marked as cleared");
 
-    // 🔁 RELOAD FROM BACKEND
+    // RELOAD FROM BACKEND
     const res = await getDeductions();
     setDeductions(res.data);
   };
@@ -194,6 +197,7 @@ const DeductionListPage: React.FC = () => {
   const deleteDeduction = async () => {
     if (!deleteTarget) return;
     await deleteDeductionAPI(deleteTarget._id);
+    toast.success("Deduction deleted successfully");
 
     const res = await getDeductions();
     setDeductions(res.data);
@@ -204,22 +208,26 @@ const DeductionListPage: React.FC = () => {
     {
       id: "date",
       header: "Date",
+      align:"center",
       accessor: "date",
       className: "whitespace-nowrap",
     },
     {
       id: "farmerCode",
       header: "Farmer Code",
+      align:"center",
       accessor: "farmerCode",
     },
     {
       id: "farmerName",
       header: "Farmer Name",
+      align:"center",
       accessor: "farmerName",
     },
     {
       id: "category",
       header: "Category",
+      align:"center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -237,13 +245,13 @@ const DeductionListPage: React.FC = () => {
     {
       id: "amount",
       header: "Amount",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.amount.toFixed(2)}`,
     },
     {
       id: "remaining",
       header: "Remaining",
-      align: "right",
+      align: "center",
       cell: (row) =>
         row.remainingAmount > 0
           ? `₹ ${row.remainingAmount.toFixed(2)}`
@@ -252,6 +260,7 @@ const DeductionListPage: React.FC = () => {
     {
       id: "status",
       header: "Status",
+      align:"center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${

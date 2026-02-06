@@ -6,6 +6,7 @@ import InputField from "../../components/inputField";
 import type { MilkType } from "../../types/farmer";
 import { ROUTES } from "../../constants/routes";
 import { useFarmerContext } from "../../context/FarmerContext";
+import toast from "react-hot-toast";
 
 const AddFarmerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,7 +41,9 @@ const AddFarmerPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+          toast.error("Please fix the form errors");
+      return};
 
     try {
       setSaving(true);
@@ -51,11 +54,12 @@ const AddFarmerPage: React.FC = () => {
         milkType,
         address,
       });
+    toast.success("Farmer added successfully");
 
       navigate(ROUTES.farmers.list.path);
     } catch (error) {
       console.error("Error adding farmer:", error);
-      alert("Failed to add farmer. Please try again.");
+      toast.error("Failed to add farmer. Please try again.");
     } finally {
       setSaving(false);
     }

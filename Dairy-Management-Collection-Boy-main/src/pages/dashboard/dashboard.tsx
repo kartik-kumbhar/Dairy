@@ -7,6 +7,7 @@ import {
 } from "../../axios/dashboard_api";
 import { useNavigate } from "react-router-dom";
 import StatCard from "../../components/statCard";
+import toast from "react-hot-toast";
 
 type TodayStats = {
   totalLiters: number | null;
@@ -87,6 +88,8 @@ const DashboardPage: React.FC = () => {
         setTopFarmers(farmersRes.data ?? []);
       } catch (err) {
         console.error("Dashboard load failed:", err);
+
+        toast.error("Failed to load dashboard data");
       }
     };
 
@@ -148,7 +151,7 @@ const DashboardPage: React.FC = () => {
               {/* Cow */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
                 <p className="text-2xl font-bold">
-                  {(todayStats.cowLiters ?? 0).toLocaleString()} 
+                  {(todayStats.cowLiters ?? 0).toLocaleString()}
                 </p>
                 <span className="text-3xl">🐄</span>
               </div>

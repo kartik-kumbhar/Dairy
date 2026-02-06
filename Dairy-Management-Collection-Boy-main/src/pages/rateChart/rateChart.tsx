@@ -9,6 +9,7 @@ import ConfirmModal from "../../components/confirmModal";
 import type { MilkType } from "../../types/farmer";
 import type { MilkRateChart } from "../../types/rateChart";
 import { getRateCharts, updateRateChart } from "../../axios/rateChart_api";
+import toast from "react-hot-toast";
 
 type RateChartExcelRow = {
   FAT?: number;
@@ -58,28 +59,6 @@ function generateMatrix(
   );
 }
 
-// function defaultChart(milkType: MilkType): MilkRateChart {
-//   const now = new Date().toISOString();
-//   const baseRate = milkType === "cow" ? 20 : 30;
-//   const fatFactor = milkType === "cow" ? 4 : 5;
-//   const snfFactor = 1;
-
-//   const baseConfig = {
-//     milkType,
-//     fats: DEFAULT_FATS,
-//     snfs: DEFAULT_SNFS,
-//     baseRate,
-//     fatFactor,
-//     snfFactor,
-//   };
-
-//   return {
-//     ...baseConfig,
-//     rates: generateMatrix(baseConfig),
-//     updatedAt: now,
-//   };
-// }
-
 function defaultChart(milkType: MilkType): MilkRateChart {
   const now = new Date().toISOString();
   const today = now.slice(0, 10); // YYYY-MM-DD
@@ -106,16 +85,16 @@ function defaultChart(milkType: MilkType): MilkRateChart {
 }
 
 // Find matrix rate for exactly matching FAT + SNF, if present
-function findMatrixRate(
-  chart: MilkRateChart,
-  fat: number,
-  snf: number,
-): number | undefined {
-  const row = chart.fats.indexOf(fat);
-  const col = chart.snfs.indexOf(snf);
-  if (row === -1 || col === -1) return undefined;
-  return chart.rates[row][col];
-}
+// function findMatrixRate(
+//   chart: MilkRateChart,
+//   fat: number,
+//   snf: number,
+// ): number | undefined {
+//   const row = chart.fats.indexOf(fat);
+//   const col = chart.snfs.indexOf(snf);
+//   if (row === -1 || col === -1) return undefined;
+//   return chart.rates[row][col];
+// }
 
 const RateChartPage: React.FC = () => {
   const [charts, setCharts] = useState<RateChartStorage | null>(null);
@@ -123,28 +102,14 @@ const RateChartPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Preview calculator
-  const [previewFat, setPreviewFat] = useState<string>("4.0");
-  const [previewSnf, setPreviewSnf] = useState<string>("8.5");
+  // const [previewFat, setPreviewFat] = useState<string>("4.0");
+  // const [previewSnf, setPreviewSnf] = useState<string>("8.5");
 
   // Confirm reset
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Hidden file input for Excel import
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // useEffect(() => {
-  //   const load = async () => {
-  //     try {
-  //       const res = await getRateCharts();
-  //       setCharts(res.data);
-  //     } catch (err) {
-  //       console.error("Failed to load rate charts:", err);
-  //       alert("Failed to load rate charts");
-  //     }
-  //   };
-
-  //   load();
-  // }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -175,7 +140,7 @@ const RateChartPage: React.FC = () => {
         });
       } catch (err) {
         console.error("Failed to load rate charts:", err);
-        alert("Failed to load rate charts");
+        toast.error("Failed to load rate charts");
       }
     };
 
@@ -236,6 +201,7 @@ const RateChartPage: React.FC = () => {
     const def = defaultChart(activeMilkType);
     setCurrent(def);
     setShowResetConfirm(false);
+    toast.success(`${activeMilkType} rate chart reset to default`);
   };
 
   const handleCellChange = (
@@ -271,10 +237,10 @@ const RateChartPage: React.FC = () => {
         updatedAt: new Date().toISOString(),
       });
 
-      alert("Rate chart saved successfully");
+      toast.success("Rate chart saved successfully");
     } catch (err) {
       console.error("Save failed:", err);
-      alert("Failed to save rate chart");
+      toast.error("Failed to save rate chart");
     } finally {
       setSaving(false);
     }
@@ -291,22 +257,22 @@ const RateChartPage: React.FC = () => {
     : { min: 0, max: 0, avg: 0 };
 
   // Preview calculation
-  const fatVal = parseFloat(previewFat);
-  const snfVal = parseFloat(previewSnf);
-  const hasPreviewValues = !Number.isNaN(fatVal) && !Number.isNaN(snfVal);
+  // const fatVal = parseFloat(previewFat);
+  // const snfVal = parseFloat(previewSnf);
+  // const hasPreviewValues = !Number.isNaN(fatVal) && !Number.isNaN(snfVal);
 
-  const previewFormulaRate =
-    hasPreviewValues &&
-    formulaRate(
-      current.baseRate,
-      current.fatFactor,
-      current.snfFactor,
-      fatVal,
-      snfVal,
-    );
+  // const previewFormulaRate =
+  //   hasPreviewValues &&
+  //   formulaRate(
+  //     current.baseRate,
+  //     current.fatFactor,
+  //     current.snfFactor,
+  //     fatVal,
+  //     snfVal,
+  //   );
 
-  const previewMatrixRate =
-    hasPreviewValues && findMatrixRate(current, fatVal, snfVal);
+  // const previewMatrixRate =
+  //   hasPreviewValues && findMatrixRate(current, fatVal, snfVal);
 
   const lastUpdatedLabel = current.updatedAt
     ? new Date(current.updatedAt).toLocaleString()
@@ -333,7 +299,7 @@ const RateChartPage: React.FC = () => {
       const rows = XLSX.utils.sheet_to_json<RateChartExcelRow>(ws);
 
       if (!rows.length) {
-        alert("Excel file is empty or has no data.");
+        toast("Excel file is empty or has no data.");
         return;
       }
 
@@ -353,7 +319,7 @@ const RateChartPage: React.FC = () => {
       const snfs = Array.from(snfsSet).sort((a, b) => a - b);
 
       if (!fats.length || !snfs.length) {
-        alert("Could not find FAT/SNF columns in the Excel file.");
+        toast("Could not find FAT/SNF columns in the Excel file.");
         return;
       }
 
@@ -384,10 +350,12 @@ const RateChartPage: React.FC = () => {
       };
 
       setCurrent(updatedChart);
-      alert(`Imported rate chart for ${activeMilkType} from ${sheetName}.`);
+      toast.success(
+        `Imported rate chart for ${activeMilkType} from ${sheetName}.`,
+      );
     } catch (err) {
       console.error(err);
-      alert("Failed to import Excel file. Please check format.");
+      toast.error("Failed to import Excel file. Please check format.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -478,7 +446,7 @@ const RateChartPage: React.FC = () => {
         </div>
 
         {/* Formula + preview */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-1">
           {/* Formula card */}
           <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm lg:col-span-2">
             <h2 className="mb-3 text-sm font-semibold text-[#5E503F]">
@@ -536,7 +504,7 @@ const RateChartPage: React.FC = () => {
           </div>
 
           {/* Preview card */}
-          <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+          {/* <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold text-[#5E503F]">
               Rate Preview (FAT / SNF)
             </h2>
@@ -583,7 +551,7 @@ const RateChartPage: React.FC = () => {
                 Enter valid FAT and SNF values to see preview.
               </p>
             )}
-          </div>
+          </div> */}
         </div>
 
         {/* Matrix editor */}

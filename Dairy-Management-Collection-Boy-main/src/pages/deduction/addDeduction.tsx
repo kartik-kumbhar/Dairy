@@ -8,6 +8,7 @@ import Loader from "../../components/loader";
 import type { Farmer } from "../../types/farmer";
 import { getFarmers } from "../../axios/farmer_api";
 import { addDeduction } from "../../axios/deduction_api";
+import toast from "react-hot-toast";
 
 const AddDeductionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ const AddDeductionPage: React.FC = () => {
         setFarmers(res.data);
       } catch (err) {
         console.error("Failed to load farmers:", err);
+        toast.error("Failed to load farmers");
       } finally {
         setLoadingFarmers(false);
       }
@@ -65,7 +67,10 @@ const AddDeductionPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fix the form errors");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -77,10 +82,12 @@ const AddDeductionPage: React.FC = () => {
         amount: parseFloat(amount),
         description: description.trim() || undefined,
       });
+      toast.success("Deduction added successfully");
 
       navigate("/deduction");
     } catch (err) {
       console.error("Failed to save deduction:", err);
+      toast.error("Failed to save deduction");
     } finally {
       setSaving(false);
     }

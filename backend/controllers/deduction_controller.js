@@ -2,30 +2,6 @@ import Deduction from "../models/Deduction.js";
 import Farmer from "../models/Farmer.js";
 import Milk from "../models/Milk.js";
 
-// export const addDeduction = async (req, res) => {
-//   try {
-//     const farmer = await Farmer.findById(req.body.farmerId);
-//     if (!farmer) {
-//       return res.status(400).json({ message: "Invalid farmer selected" });
-//     }
-
-//     const deduction = await Deduction.create({
-//       farmerId: req.body.farmerId,
-//       date: req.body.date,
-//       type: req.body.category,
-//       amount: req.body.amount,
-
-//       remainingAmount: req.body.amount,
-//       status: "Pending",
-
-//       note: req.body.description || "",
-//     });
-
-//     res.status(201).json(deduction);
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
-// };
 export const addDeduction = async (req, res) => {
   try {
     const { farmerId, date, category, amount, description } = req.body;
@@ -39,7 +15,7 @@ export const addDeduction = async (req, res) => {
       date,
       category,
       amount,
-      remainingAmount: amount, // 🔥 IMPORTANT
+      remainingAmount: amount, 
       note: description || "",
       status: "Pending",
     });
@@ -98,12 +74,9 @@ export const clearDeduction = async (req, res) => {
   }
 };
 
-
-
 export const getDeductions = async (req, res) => {
   try {
-    const deductions = await Deduction.find()
-      .populate("farmerId", "name code");
+    const deductions = await Deduction.find().populate("farmerId", "name code");
 
     const formatted = await Promise.all(
       deductions.map(async (d) => {
@@ -134,8 +107,8 @@ export const getDeductions = async (req, res) => {
             remaining === 0
               ? "Cleared"
               : remaining < d.amount
-              ? "Partial"
-              : "Pending";
+                ? "Partial"
+                : "Pending";
 
           await Deduction.findByIdAndUpdate(d._id, {
             remainingAmount: remaining,
@@ -147,7 +120,7 @@ export const getDeductions = async (req, res) => {
         return {
           _id: d._id,
           date: d.date,
-          category: d.type,
+          category: d.category,
           amount: d.amount,
           remainingAmount: remaining,
           status,
@@ -155,7 +128,7 @@ export const getDeductions = async (req, res) => {
           farmerName: d.farmerId.name,
           farmerCode: d.farmerId.code,
         };
-      })
+      }),
     );
 
     res.json(formatted);
@@ -163,4 +136,3 @@ export const getDeductions = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-

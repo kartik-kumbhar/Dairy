@@ -9,13 +9,11 @@ import Loader from "../../components/loader";
 import type { BonusRule, BonusType, Bonus } from "../../types/bonus";
 
 import type { Farmer } from "../../types/farmer";
-// import type { MilkCollection } from "../../types/milkCollection";
 
 import { getFarmers } from "../../axios/farmer_api";
 import { addBonus, getBonus, previewBonus } from "../../axios/bonus_api";
 import toast from "react-hot-toast";
 
-// const COLLECTION_KEY = "dairy_milkCollections";
 const BONUS_RULES_KEY = "dairy_bonusRules";
 
 type DateFilterMode = "thisMonth" | "custom";
