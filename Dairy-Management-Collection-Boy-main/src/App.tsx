@@ -24,6 +24,7 @@ import DailyReportPage from "./pages/reports/dailyReport";
 import MonthlyReportPage from "./pages/reports/monthlyReport";
 import BillManagementPage from "./pages/bills/billManagement";
 import MilkYieldReportPage from "./pages/reports/milkYieldReport";
+import BillingReportPage from "./pages/reports/billingReport";
 
 const App: React.FC = () => {
   return (
@@ -61,7 +62,7 @@ const App: React.FC = () => {
         <Route path="/reports/monthly" element={<MonthlyReportPage />} />
 
         <Route path="/reports/milk-yield" element={<MilkYieldReportPage />} />
-        {/* <Route path="/reports/billing" element={<BillingReportPage />} /> */}
+        <Route path="/reports/billing" element={<BillingReportPage />} />
 
         {/* Bills */}
         <Route path="/bills" element={<BillManagementPage />} />

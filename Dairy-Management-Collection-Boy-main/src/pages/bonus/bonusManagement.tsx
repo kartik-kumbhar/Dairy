@@ -13,6 +13,7 @@ import type { Farmer } from "../../types/farmer";
 
 import { getFarmers } from "../../axios/farmer_api";
 import { addBonus, getBonus, previewBonus } from "../../axios/bonus_api";
+import toast from "react-hot-toast";
 
 // const COLLECTION_KEY = "dairy_milkCollections";
 const BONUS_RULES_KEY = "dairy_bonusRules";
@@ -242,6 +243,7 @@ const BonusManagementPage: React.FC = () => {
       saveJSON(BONUS_RULES_KEY, list);
       setSelectedRuleId(newRule._id);
     }
+    toast.success(editingRule ? "Bonus rule updated" : "Bonus rule added");
 
     setShowRuleModal(false);
   };
@@ -258,6 +260,7 @@ const BonusManagementPage: React.FC = () => {
     }
 
     setDeleteRuleTarget(null);
+    toast.success("Bonus rule deleted");
   };
 
   // ---------- bonus calculation ----------
@@ -270,85 +273,48 @@ const BonusManagementPage: React.FC = () => {
   };
 
   const calculateBonus = async () => {
-  if (!selectedRule) {
-    alert("Please select a bonus rule.");
-    return;
-  }
+    if (!selectedRule) {
+      toast.error("Please select a bonus rule.");
+      return;
+    }
 
-  try {
-    setCalculating(true);
+    try {
+      setCalculating(true);
 
-    const res = await previewBonus({
-      periodFrom,
-      periodTo,
-      rule: {
-        type: selectedRule.type,
-        value: selectedRule.value,
-      },
-    });
+      const res = await previewBonus({
+        periodFrom,
+        periodTo,
+        rule: {
+          type: selectedRule.type,
+          value: selectedRule.value,
+        },
+      });
 
-    setCalculatedRows(res.data);
+      setCalculatedRows(res.data);
+      toast.success("Bonus calculated successfully");
 
-    const total = res.data.reduce(
-      (sum: number, r: CalculatedBonusRow) => sum + r.bonus,
-      0,
-    );
+      const total = res.data.reduce(
+        (sum: number, r: CalculatedBonusRow) => sum + r.bonus,
+        0,
+      );
 
-    setCalculatedTotalBonus(total);
-  } catch (err) {
-    console.error("calculateBonus error:", err);
-    alert("Failed to calculate bonus");
-  } finally {
-    setCalculating(false);
-  }
-};
-
-
-  // const saveDistribution = async () => {
-  //   if (!selectedRule) {
-  //     alert("Please select a bonus rule.");
-  //     return;
-  //   }
-  //   if (calculatedRows.length === 0) {
-  //     alert("No bonus calculated to save.");
-  //     return;
-  //   }
-
-  //   try {
-  //     setSaveLoading(true);
-
-  //     for (const r of calculatedRows) {
-  //       await addBonus({
-  //         farmerId: r.farmerId,
-  //         amount: r.bonus,
-  //         reason: selectedRule.name,
-  //         date: periodTo,
-  //       });
-  //     }
-
-  //     alert("Bonus distribution saved successfully!");
-  //     setCalculatedRows([]);
-  //     setCalculatedTotalBonus(0);
-
-  //     await loadBonusPaymentsFromBackend();
-  //   } catch (error) {
-  //     console.error("Error saving bonus distribution:", error);
-  //     alert("Failed to save bonus distribution.");
-  //   } finally {
-  //     setSaveLoading(false);
-  //   }
-  // };
-
-  // ---------- table defs ----------
+      setCalculatedTotalBonus(total);
+    } catch (err) {
+      console.error("calculateBonus error:", err);
+      toast.error("Failed to calculate bonus");
+    } finally {
+      setCalculating(false);
+    }
+  };
 
   const saveDistribution = async () => {
     if (!selectedRule) {
-      alert("Please select a bonus rule.");
+      toast.error("Please select a bonus rule.");
       return;
     }
 
     if (calculatedRows.length === 0) {
-      alert("No bonus calculated to save.");
+      toast.error("No bonus calculated to save.");
       return;
     }
 
@@ -360,17 +326,17 @@ const BonusManagementPage: React.FC = () => {
           farmerId: r.farmerId,
           amount: r.bonus,
           reason: selectedRule.name,
-          date: periodTo, 
+          date: periodTo,
         });
       }
 
-      alert("Bonus distribution saved successfully!");
+      toast.success("Bonus distribution saved successfully!");
       setCalculatedRows([]);
       setCalculatedTotalBonus(0);
       await loadBonusPaymentsFromBackend();
     } catch (error) {
       console.error("Error saving bonus distribution:", error);
-      alert("Failed to save bonus distribution.");
+      toast.error("Failed to save bonus distribution.");
     } finally {
       setSaveLoading(false);
     }
@@ -660,7 +626,10 @@ const BonusManagementPage: React.FC = () => {
                 <div className="mt-4 flex items-center justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setCalculatedRows([])}
+                    onClick={() => {
+                      setCalculatedRows([]);
+                      toast("Bonus preview cleared", { icon: "🧹" });
+                    }}
                     className="rounded-md border border-[#E9E2C8] bg-white px-4 py-2 text-sm text-[#5E503F] hover:bg-[#F8F4E3]"
                   >
                     Clear

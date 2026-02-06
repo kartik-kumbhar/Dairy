@@ -1,6 +1,6 @@
 // src/pages/bills/billManagement.tsx
 import React, { useEffect, useMemo, useState } from "react";
-  import axios from "axios";
+import axios from "axios";
 
 import InputField from "../../components/inputField";
 import SelectField from "../../components/selectField";
@@ -15,6 +15,7 @@ import type { Bill, BillStatus } from "../../types/bills";
 import { getFarmers } from "../../axios/farmer_api";
 import { generateBill, getBills } from "../../axios/bill_api";
 import { api } from "../../axios/axiosInstance";
+import toast from "react-hot-toast";
 
 type BillScope = "All" | "Single";
 
@@ -30,12 +31,22 @@ interface CalculatedBillRow {
 }
 
 const BillManagementPage: React.FC = () => {
-  const today = useMemo(() => new Date(), []);
-  const todayISO = useMemo(() => today.toISOString().slice(0, 10), [today]);
-  const firstOfMonthISO = useMemo(() => {
-    const d = new Date(today.getFullYear(), today.getMonth(), 1);
-    return d.toISOString().slice(0, 10);
-  }, [today]);
+  // const today = useMemo(() => new Date(), []);
+  // const todayISO = useMemo(() => today.toISOString().slice(0, 10), [today]);
+  // const firstOfMonthISO = useMemo(() => {
+  //   const d = new Date(today.getFullYear(), today.getMonth(), 1);
+  //   return d.toISOString().slice(0, 10);
+  // }, [today]);
+
+  const today = new Date();
+
+  const todayISO = `${today.getFullYear()}-${String(
+    today.getMonth() + 1,
+  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const firstOfMonthISO = `${today.getFullYear()}-${String(
+    today.getMonth() + 1,
+  ).padStart(2, "0")}-01`;
 
   // Backend data
   const [farmers, setFarmers] = useState<Farmer[]>([]);
@@ -46,7 +57,7 @@ const BillManagementPage: React.FC = () => {
   // Generate section state
   const [scope, setScope] = useState<BillScope>("All");
   const [selectedFarmerId, setSelectedFarmerId] = useState("");
-  const [periodFrom, setPeriodFrom] = useState<string>(firstOfMonthISO);
+  const [periodFrom] = useState<string>(firstOfMonthISO);
   const [periodTo, setPeriodTo] = useState<string>(todayISO);
 
   const [calculating, setCalculating] = useState(false);
@@ -130,22 +141,20 @@ const BillManagementPage: React.FC = () => {
     });
   }, [existingBills, billStatusFilter, billSearch]);
 
-  
-
   // ---------- GENERATE BILL(S) USING BACKEND ----------
   const calculateBills = async () => {
     if (!periodFrom || !periodTo) {
-      alert("Please select bill period (From and To).");
+      toast.error("Please select bill period (From and To).");
       return;
     }
 
     if (periodFrom > periodTo) {
-      alert("Period From cannot be after Period To.");
+      toast.error("Period From cannot be after Period To.");
       return;
     }
 
     if (scope === "Single" && !selectedFarmerId) {
-      alert("Please select a farmer for single farmer bill.");
+      toast.error("Please select a farmer for single farmer bill.");
       return;
     }
 
@@ -156,11 +165,12 @@ const BillManagementPage: React.FC = () => {
 
       const farmersToProcess =
         scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
+      const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
       for (const f of farmersToProcess) {
         const res = await api.post("/bills/preview", {
           farmerId: f._id,
-          periodFrom,
+          periodFrom: normalizedPeriodFrom,
           periodTo,
         });
 
@@ -184,67 +194,87 @@ const BillManagementPage: React.FC = () => {
       setCalculatedTotalNet(rows.reduce((sum, r) => sum + r.netAmount, 0));
     } catch (err) {
       console.error("Calculate bills failed:", err);
-      alert("Failed to calculate bills.");
+      toast.error("Failed to calculate bills.");
     } finally {
       setCalculating(false);
     }
   };
 
-
   // ---------- DELETE ----------
 
-const generateBills = async () => {
-  if (!periodFrom || !periodTo) {
-    alert("Please select bill period.");
-    return;
-  }
-
-  try {
-    setSavingBills(true);
-
-    const farmersToProcess =
-      scope === "Single" && selectedFarmer
-        ? [selectedFarmer]
-        : farmers;
-
-    let success = 0;
-    let skipped = 0;
-
-    for (const f of farmersToProcess) {
-      try {
-        await generateBill({
-          farmerId: f._id,
-          periodFrom,
-          periodTo,
-        });
-        success++;
-      } catch (err: unknown) {
-        if (axios.isAxiosError(err) && err.response?.status === 409) {
-          skipped++; // bill already exists
-        } else {
-          throw err; // real error
-        }
-      }
+  const generateBills = async () => {
+    if (!periodFrom || !periodTo) {
+      toast.error("Please select bill period.");
+      return;
     }
 
-    alert(
-      `Bills generated: ${success}\nAlready existed: ${skipped}`
-    );
+    try {
+      setSavingBills(true);
 
-    await loadBills();
-    setCalculatedRows([]);
-  } catch (err) {
-    console.error("Generate bills error:", err);
-    alert("Something went wrong while generating bills.");
-  } finally {
-    setSavingBills(false);
-  }
-};
+      const farmersToProcess =
+        scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
 
-  
-  const deleteBill = () => {
-    alert("Backend delete bill API not added yet.");
-    setDeleteBillTarget(null);
+      let success = 0;
+      let skipped = 0;
+      const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+
+      for (const f of farmersToProcess) {
+        try {
+          await generateBill({
+            farmerId: f._id,
+            periodFrom: normalizedPeriodFrom,
+            periodTo,
+          });
+          success++;
+        } catch (err: unknown) {
+          if (axios.isAxiosError(err) && err.response?.status === 409) {
+            skipped++; // bill already exists
+          } else {
+            throw err; // real error
+          }
+        }
+      }
+
+      toast.success(`Bills generated: ${success}\nAlready existed: ${skipped}`);
+
+      await loadBills();
+      setCalculatedRows([]);
+    } catch (err) {
+      console.error("Generate bills error:", err);
+      toast.error("Something went wrong while generating bills.");
+    } finally {
+      setSavingBills(false);
+    }
+  };
+
+  const deleteBill = async () => {
+    if (!deleteBillTarget) return;
+
+    try {
+      await api.delete(`/bills/${deleteBillTarget._id}`);
+      toast.success("Bill deleted successfully");
+      setDeleteBillTarget(null);
+      await loadBills(); // 🔄 refresh table
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to delete bill");
+      }
+    }
+  };
+
+  const markAsPaid = async (bill: Bill) => {
+    try {
+      await api.put(`/bills/${bill._id}/pay`);
+        toast.success("Bill marked as Paid");
+
+      await loadBills(); //  refresh table + stats
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to mark bill as Paid");
+    }
   };
 
   // ---------- TABLES ----------
@@ -254,32 +284,31 @@ const generateBills = async () => {
     {
       id: "liters",
       header: "Liters",
-      align: "right",
-      // cell: (row) => `₹ ${(row.liters ?? 0).toFixed(2)}`
+      align: "center",
       cell: (row) => (row.liters ?? 0).toFixed(2),
     },
     {
       id: "milkAmount",
       header: "Milk Amount",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${(row.milkAmount ?? 0).toFixed(2)}`,
     },
     {
       id: "bonusAmount",
       header: "Bonus",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${(row.bonusAmount ?? 0).toFixed(2)}`,
     },
     {
       id: "deductionAmount",
       header: "Deductions",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${(row.deductionAmount ?? 0).toFixed(2)}`,
     },
     {
       id: "",
       header: "Net Payable",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${(row.netAmount ?? 0).toFixed(2)}`,
     },
   ];
@@ -308,31 +337,31 @@ const generateBills = async () => {
     {
       id: "liters",
       header: "Liters",
-      align: "right",
+      align: "center",
       cell: (row) => row.totalLiters.toFixed(2),
     },
     {
       id: "amount",
       header: "Milk Amount",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.milkAmount.toFixed(2)}`,
     },
     {
       id: "bonus",
       header: "Bonus",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.bonusAmount.toFixed(2)}`,
     },
     {
       id: "deduction",
       header: "Deduction",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.deductionAmount.toFixed(2)}`,
     },
     {
       id: "net",
       header: "Net Payable",
-      align: "right",
+      align: "center",
       cell: (row) => `₹ ${row.netAmount.toFixed(2)}`,
     },
     {
@@ -355,13 +384,35 @@ const generateBills = async () => {
       header: "Actions",
       align: "center",
       cell: (row) => (
-        <button
-          type="button"
-          onClick={() => setDeleteBillTarget(row)}
-          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-[#E76F51] hover:bg-[#E76F51]/10"
-        >
-          Delete
-        </button>
+        <div className="flex items-center justify-center gap-2">
+          {/* MARK AS PAID */}
+          <button
+            type="button"
+            disabled={row.status === "Paid"}
+            onClick={() => markAsPaid(row)}
+            className={`rounded-md px-2 py-1 text-xs ${
+              row.status === "Paid"
+                ? "cursor-not-allowed bg-green-100 text-green-600"
+                : "border border-[#2A9D8F] text-[#2A9D8F] hover:bg-[#2A9D8F]/10"
+            }`}
+          >
+            Paid
+          </button>
+
+          {/* DELETE */}
+          <button
+            type="button"
+            disabled={row.status === "Paid"}
+            onClick={() => setDeleteBillTarget(row)}
+            className={`rounded-md px-2 py-1 text-xs ${
+              row.status === "Paid"
+                ? "cursor-not-allowed bg-gray-200 text-gray-400"
+                : "border border-[#E9E2C8] bg-white text-[#E76F51] hover:bg-[#E76F51]/10"
+            }`}
+          >
+            Delete
+          </button>
+        </div>
       ),
     },
   ];
@@ -440,13 +491,20 @@ const generateBills = async () => {
               </div>
             </div>
 
-            <InputField
+            {/* <InputField
               label="Period From"
               type="date"
               value={periodFrom}
               onChange={(e) => setPeriodFrom(e.target.value)}
               requiredLabel
+            /> */}
+            <InputField
+              label="Period From"
+              type="date"
+              value={periodFrom}
+              disabled
             />
+
             <InputField
               label="Period To"
               type="date"

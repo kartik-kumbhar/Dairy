@@ -95,29 +95,44 @@ export const milkTypeReport = async (req, res) => {
 /* ===============================
    3. BILLING REPORT
 ================================ */
-export const billingReport = async (req, res) => {
+
+export const getMonthlyBillingReport = async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { month } = req.query; // YYYY-MM
+    if (!month) {
+      return res.status(400).json({ message: "Month is required" });
+    }
 
-    const bills = await Bill.find({
-      periodFrom: { $gte: from },
-      periodTo: { $lte: to },
-    });
-
-    const totals = bills.reduce(
-      (acc, b) => {
-        acc.totalMilk += b.totalMilkAmount;
-        acc.totalDeduction += b.totalDeduction;
-        acc.totalBonus += b.totalBonus;
-        acc.net += b.netPayable;
-        return acc;
-      },
-      { totalMilk: 0, totalDeduction: 0, totalBonus: 0, net: 0 },
+    const bills = await Bill.find({ billMonth: month }).populate(
+      "farmerId",
+      "name mobile",
     );
 
-    res.json({ totals, bills });
+    let totals = {
+      totalMilkAmount: 0,
+      totalDeduction: 0,
+      totalBonus: 0,
+      netPayable: 0,
+      totalLiters: 0,
+    };
+
+    bills.forEach((b) => {
+      totals.totalMilkAmount += b.totalMilkAmount;
+      totals.totalDeduction += b.totalDeduction;
+      totals.totalBonus += b.totalBonus;
+      totals.netPayable += b.netPayable;
+      totals.totalLiters += b.totalLiters;
+    });
+
+    res.json({
+      month,
+      billCount: bills.length,
+      ...totals,
+      rows: bills,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Billing report failed" });
   }
 };
 
@@ -158,6 +173,11 @@ export const monthlyMilkReport = async (req, res) => {
 
     const from = `${month}-01`;
     const to = `${month}-31`;
+    // const from = `${month}-01`;
+
+    // const [year, mon] = month.split("-").map(Number);
+    // // last day of month trick
+    // const to = new Date(year, mon, 0).toISOString().slice(0, 10);
 
     const entries = await Milk.find({
       date: { $gte: from, $lte: to },

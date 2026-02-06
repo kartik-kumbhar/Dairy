@@ -28,7 +28,7 @@ export const getBills = async (req, res) => {
         deductionAmount: b.totalDeduction ?? 0,
         netAmount: b.netPayable ?? 0,
 
-        status: "Pending",
+        status: b.status ?? "Pending",
         createdAt: b.createdAt,
       };
     });
@@ -40,74 +40,26 @@ export const getBills = async (req, res) => {
   }
 };
 
-// export const generateBill = async (req, res) => {
-//   try {
-//     const { farmerId, periodFrom, periodTo } = req.body;
-
-//     const milkList = await Milk.find({
-//       farmerId,
-//       date: { $gte: periodFrom, $lte: periodTo }, // string vs string ✔
-//     });
-
-//     const deductionList = await Deduction.find({
-//       farmerId,
-//       date: { $gte: periodFrom, $lte: periodTo },
-//     });
-
-//     const bonusList = await Bonus.find({
-//       farmerId,
-//       date: { $gte: periodFrom, $lte: periodTo },
-//     });
-
-//     const totalLiters = milkList.reduce((s, m) => s + m.quantity, 0);
-//     const totalMilkAmount = milkList.reduce((s, m) => s + m.totalAmount, 0);
-//     const totalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);
-//     const totalBonus = bonusList.reduce((s, b) => s + b.amount, 0);
-
-//     const netPayable = totalMilkAmount + totalBonus - totalDeduction;
-
-//     const bill = await Bill.findOneAndUpdate(
-//       { farmerId, periodFrom, periodTo },
-//       {
-//         farmerId,
-//         periodFrom,
-//         periodTo,
-//         totalLiters,
-//         totalMilkAmount,
-//         totalDeduction,
-//         totalBonus,
-//         netPayable,
-//       },
-//       { new: true, upsert: true },
-//     );
-
-//     res.json(bill);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 export const generateBill = async (req, res) => {
   try {
     const { farmerId, periodFrom, periodTo } = req.body;
+    // Force periodFrom to first of month
 
-    if (!farmerId || !periodFrom || !periodTo) {
-      return res.status(400).json({
-        message: "farmerId, periodFrom and periodTo are required",
-      });
-    }
+    const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
+    const billMonth = normalizedPeriodFrom.slice(0, 7);
     const milkList = await Milk.find({
       farmerId,
       date: { $gte: periodFrom, $lte: periodTo },
     });
 
     const deductionList = await Deduction.find({
-      farmerId, 
+      farmerId,
       date: { $gte: periodFrom, $lte: periodTo },
     });
 
     const bonusList = await Bonus.find({
-      farmerId,   
+      farmerId,
       date: { $gte: periodFrom, $lte: periodTo },
     });
 
@@ -118,56 +70,82 @@ export const generateBill = async (req, res) => {
 
     const netPayable = totalMilkAmount + totalBonus - totalDeduction;
 
-    const bill = await Bill.findOneAndUpdate(
-      { farmerId, periodFrom, periodTo },
-      {
-        farmerId,
-        periodFrom,
-        periodTo,
-        totalLiters,
-        totalMilkAmount,
-        totalDeduction,
-        totalBonus,
-        netPayable,
-      },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
-      },
-    );
+    const bill = await Bill.create({
+      farmerId,
+      periodFrom: normalizedPeriodFrom,
+      periodTo,
+      billMonth: normalizedPeriodFrom.slice(0, 7),
+      totalLiters,
+      totalMilkAmount,
+      totalDeduction,
+      totalBonus,
+      netPayable,
+      status: "Pending",
+    });
 
     res.json(bill);
   } catch (err) {
-    console.error("generateBill error:", err);
-
-    // Handle duplicate key explicitly
+    // 🔒 Duplicate protection
     if (err.code === 11000) {
       return res.status(409).json({
-        message: "Bill already exists for this farmer and period",
+        message: "Bill already generated for this farmer and period",
       });
-    } 
+    }
 
     res.status(500).json({ message: err.message });
   }
 };
 
+// export const previewBill = async (req, res) => {
+//   const { farmerId, periodFrom, periodTo } = req.body;
+
+//   const milkList = await Milk.find({
+//     farmerId,
+//     date: { $gte: periodFrom, $lte: periodTo },
+//   });
+
+//   const deductionList = await Deduction.find({
+//     farmerId,
+//     date: { $gte: periodFrom, $lte: periodTo },
+//   });
+
+//   const bonusList = await Bonus.find({
+//     farmerId,
+//     date: { $gte: periodFrom, $lte: periodTo },
+//   });
+
+//   const totalLiters = milkList.reduce((s, m) => s + m.quantity, 0);
+//   const milkAmount = milkList.reduce((s, m) => s + m.totalAmount, 0);
+//   const deductionAmount = deductionList.reduce((s, d) => s + d.amount, 0);
+//   const bonusAmount = bonusList.reduce((s, b) => s + b.amount, 0);
+
+//   res.json({
+//     totalLiters,
+//     milkAmount,
+//     deductionAmount,
+//     bonusAmount,
+//     netAmount: milkAmount + bonusAmount - deductionAmount,
+//   });
+// };
 export const previewBill = async (req, res) => {
   const { farmerId, periodFrom, periodTo } = req.body;
 
+  // ✅ normalize
+  const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+
   const milkList = await Milk.find({
     farmerId,
-    date: { $gte: periodFrom, $lte: periodTo },
+    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
   });
 
   const deductionList = await Deduction.find({
     farmerId,
-    date: { $gte: periodFrom, $lte: periodTo },
+    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
   });
 
   const bonusList = await Bonus.find({
     farmerId,
-    date: { $gte: periodFrom, $lte: periodTo },
+    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
   });
 
   const totalLiters = milkList.reduce((s, m) => s + m.quantity, 0);
@@ -182,4 +160,54 @@ export const previewBill = async (req, res) => {
     bonusAmount,
     netAmount: milkAmount + bonusAmount - deductionAmount,
   });
+};
+
+export const deleteBill = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const bill = await Bill.findById(id);
+
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
+
+    // Do not allow deleting paid bills
+    if (bill.status === "Paid") {
+      return res.status(400).json({
+        message: "Paid bills cannot be deleted",
+      });
+    }
+
+    await bill.deleteOne();
+
+    res.json({ message: "Bill deleted successfully" });
+  } catch (err) {
+    console.error("deleteBill error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const markBillAsPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const bill = await Bill.findById(id);
+
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
+
+    if (bill.status === "Paid") {
+      return res.status(400).json({ message: "Bill already marked as Paid" });
+    }
+
+    bill.status = "Paid";
+    await bill.save();
+
+    res.json({ message: "Bill marked as Paid" });
+  } catch (err) {
+    console.error("markBillAsPaid error:", err);
+    res.status(500).json({ message: err.message });
+  }
 };

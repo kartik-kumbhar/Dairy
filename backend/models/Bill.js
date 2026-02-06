@@ -35,6 +35,17 @@ const billSchema = new mongoose.Schema(
       type: String, // YYYY-MM-DD
       required: true,
     },
+    billMonth: {
+      type: String, // YYYY-MM
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Paid"],
+      default: "Pending",
+      index: true,
+    },
   },
   { timestamps: true },
 );

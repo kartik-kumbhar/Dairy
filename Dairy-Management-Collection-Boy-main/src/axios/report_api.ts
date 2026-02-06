@@ -112,3 +112,31 @@ export const getMonthlyMilkReport = (month: string) =>
   api.get<MonthlyMilkReportResponse>("/reports/monthly-milk", {
     params: { month },
   });
+
+export type MonthlyBillingReportResponse = {
+  month: string;
+  billCount: number;
+  totalMilkAmount: number;
+  totalDeduction: number;
+  totalBonus: number;
+  netPayable: number;
+  totalLiters: number;
+  rows: {
+    _id: string;
+    farmerId: {
+      name: string;
+      mobile: string;
+    };
+    periodFrom: string;
+    periodTo: string;
+    totalLiters: number;
+    totalMilkAmount: number;
+    totalDeduction: number;
+    totalBonus: number;
+    netPayable: number;
+    status: "Pending" | "Paid";
+  }[];
+};
+
+export const getMonthlyBillingReport = (month: string) =>
+  api.get<MonthlyBillingReportResponse>(`/reports/billing?month=${month}`);
