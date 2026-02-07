@@ -13,6 +13,7 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
 } from "../../axios/inventory_api";
+import toast from "react-hot-toast";
 
 const InventoryListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ const InventoryListPage: React.FC = () => {
 
     const qty = parseFloat(stockQty);
     if (!qty || qty <= 0) {
-      alert("Enter quantity greater than 0.");
+      toast.error("Enter quantity greater than 0.");
       return;
     }
 
@@ -130,7 +131,7 @@ const InventoryListPage: React.FC = () => {
       setStockModalItem(null);
     } catch (err) {
       console.error("Stock update failed:", err);
-      alert("Failed to update stock");
+      toast.error("Failed to update stock");
     }
   };
 
@@ -178,11 +179,12 @@ const InventoryListPage: React.FC = () => {
       setItems((prev) =>
         prev.map((i) => (i._id === res.data._id ? res.data : i)),
       );
+      toast.success("Inventory item updated successfully");
 
       setEditItem(null);
     } catch (err) {
       console.error("Edit failed:", err);
-      alert("Failed to save changes");
+      toast.error("Failed to save changes");
     }
   };
 
@@ -194,10 +196,12 @@ const InventoryListPage: React.FC = () => {
     try {
       await deleteInventoryItem(deleteTarget._id);
       setItems((prev) => prev.filter((i) => i._id !== deleteTarget._id));
+      toast.success("Inventory item deleted");
+
       setDeleteTarget(null);
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("Failed to delete item");
+      toast.error("Failed to delete item");
     }
   };
 
@@ -207,22 +211,25 @@ const InventoryListPage: React.FC = () => {
     {
       id: "code",
       header: "Code",
+      align: "center",
       accessor: "code",
     },
     {
       id: "name",
       header: "Item Name",
+      align: "center",
       accessor: "name",
     },
     {
       id: "category",
       header: "Category",
+      align: "center",
       accessor: "category",
     },
     {
       id: "stock",
       header: "Stock",
-      align: "right",
+      align: "center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -240,29 +247,38 @@ const InventoryListPage: React.FC = () => {
     {
       id: "minStock",
       header: "Min Stock",
-      align: "right",
+      align: "center",
       cell: (row) => (row.minStock ?? 0).toFixed(2),
     },
     {
       id: "purchaseRate",
       header: "Purchase Rate",
-      align: "right",
+      align: "center",
       cell: (row) =>
         row.purchaseRate != null ? `₹ ${row.purchaseRate.toFixed(2)}` : "-",
     },
     {
       id: "value",
       header: "Stock Value",
-      align: "right",
+      align: "center",
       cell: (row) =>
         row.purchaseRate != null
           ? `₹ ${((row.currentStock ?? 0) * row.purchaseRate).toFixed(2)}`
           : "-",
     },
+
     {
       id: "updated",
       header: "Last Updated",
-      accessor: "lastUpdated",
+      align: "center",
+      cell: (row) =>
+        row.updatedAt
+          ? new Date(row.updatedAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
     },
     {
       id: "actions",

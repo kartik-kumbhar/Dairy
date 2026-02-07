@@ -5,6 +5,7 @@ import InputField from "../../components/inputField";
 // import SelectField from "../../components/selectField";
 import type { InventoryItem } from "../../types/inventory";
 import { addInventoryItem, getInventoryItems } from "../../axios/inventory_api";
+import toast from "react-hot-toast";
 
 function generateNextCode(items: InventoryItem[]): string {
   const nums = items
@@ -60,6 +61,7 @@ const AddInventoryPage: React.FC = () => {
     setPurchaseRate("");
     setSellingRate("");
     setErrors({});
+    toast("Form reset");
   };
 
   const handleCancel = () => {
@@ -68,7 +70,10 @@ const AddInventoryPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fill all required fields");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -82,11 +87,12 @@ const AddInventoryPage: React.FC = () => {
         purchaseRate: purchaseRate ? parseFloat(purchaseRate) : undefined,
         sellingRate: sellingRate ? parseFloat(sellingRate) : undefined,
       });
+      toast.success("Inventory item added successfully");
 
       navigate("/inventory");
     } catch (err) {
       console.error("Failed to add inventory item:", err);
-      alert("Failed to save inventory item");
+      toast.error("Failed to save inventory item");
     } finally {
       setSaving(false);
     }

@@ -9,6 +9,7 @@ import ConfirmModal from "../../components/confirmModal";
 import type { MilkCollection, MilkShift } from "../../types/milkCollection";
 import type { MilkType } from "../../types/farmer";
 import { getMilkEntries, deleteMilkEntry } from "../../axios/milk_api";
+import toast from "react-hot-toast";
 
 type DateFilterMode = "today" | "all" | "range";
 
@@ -34,6 +35,7 @@ const MilkCollectionListPage: React.FC = () => {
         setCollections(res.data);
       } catch (err) {
         console.error("Failed to load milk collections:", err);
+        toast.error("Failed to load milk collection entries");
       }
     };
 
@@ -104,11 +106,11 @@ const MilkCollectionListPage: React.FC = () => {
       await deleteMilkEntry(deleteTarget._id);
 
       setCollections((prev) => prev.filter((c) => c._id !== deleteTarget._id));
-
+      toast.success("Milk entry deleted successfully");
       setDeleteTarget(null);
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("Failed to delete milk entry");
+      toast.error("Failed to delete milk entry");
     }
   };
 
@@ -117,26 +119,31 @@ const MilkCollectionListPage: React.FC = () => {
       id: "date",
       header: "Date",
       accessor: "date",
+      align: "center",
       className: "whitespace-nowrap",
     },
     {
       id: "shift",
       header: "Shift",
+      align: "center",
       accessor: "shift",
     },
     {
       id: "code",
       header: "Farmer Code",
+      align: "center",
       accessor: "farmerCode",
     },
     {
       id: "name",
       header: "Farmer Name",
+      align: "center",
       accessor: "farmerName",
     },
     {
       id: "milkType",
       header: "Milk Type",
+      align: "center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -153,31 +160,31 @@ const MilkCollectionListPage: React.FC = () => {
       id: "liters",
       header: "Liters",
       cell: (row) => row.liters.toFixed(2),
-      align: "right",
+      align: "center",
     },
     {
       id: "fat",
       header: "FAT %",
       cell: (row) => row.fat.toFixed(1),
-      align: "right",
+      align: "center",
     },
     {
       id: "snf",
       header: "SNF %",
       cell: (row) => row.snf.toFixed(1),
-      align: "right",
-    },
+      align: "center",
+    }, 
     {
       id: "rate",
       header: "Rate",
       cell: (row) => `₹ ${row.rate.toFixed(2)}`,
-      align: "right",
+      align: "center",
     },
     {
       id: "amount",
       header: "Amount",
       cell: (row) => `₹ ${row.amount.toFixed(2)}`,
-      align: "right",
+      align: "center",
     },
     {
       id: "actions",

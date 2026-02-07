@@ -13,6 +13,7 @@ import {
 
 import type { MilkCollection, MilkShift } from "../../types/milkCollection";
 import type { Farmer } from "../../types/farmer";
+import toast from "react-hot-toast";
 
 type DateFilterMode = "day" | "month" | "all";
 
@@ -75,6 +76,7 @@ const MilkEntryPage: React.FC = () => {
         setCollections(milkRes.data);
       } catch (err) {
         console.error("Failed to load data:", err);
+        toast.error("Failed to load farmers or milk entries");
       } finally {
         setLoadingFarmers(false);
       }
@@ -127,11 +129,11 @@ const MilkEntryPage: React.FC = () => {
 
       const refreshed = await getMilkEntries();
       setCollections(refreshed.data);
-
+    toast.success("Milk collection saved successfully");
       resetForm();
     } catch (err) {
       console.error("Failed to save milk entry:", err);
-      alert("Milk entry already exists for this farmer, date and shift.");
+      toast.error("Milk entry already exists for this farmer, date and shift.");
     } finally {
       setSaving(false);
     }
@@ -148,7 +150,7 @@ const MilkEntryPage: React.FC = () => {
     const fatVal = parseFloat(fat);
     const snfVal = parseFloat(snf);
     if (Number(rate) <= 0) {
-      alert("Rate not available for this FAT/SNF");
+      toast.error("Rate not available for this FAT/SNF");
       return false;
     }
 
@@ -313,7 +315,6 @@ const MilkEntryPage: React.FC = () => {
                   onChange={(e) => setSnf(e.target.value)}
                   error={errors.snf}
                 />
-                
               </div>
 
               {/* Third row: Rate, Total Amount, Save */}

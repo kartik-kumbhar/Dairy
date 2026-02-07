@@ -12,6 +12,7 @@ export type InventoryCategory = string;
 export type InventoryMovementType = "In" | "Out";
 
 export interface InventoryItem {
+  updatedAt: string;
   _id: string;
   /** Item code like I001 */
   code: string;
