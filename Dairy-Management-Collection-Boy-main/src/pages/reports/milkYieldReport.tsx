@@ -10,8 +10,8 @@ import {
   type MilkEntry,
 } from "../../axios/report_api";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
-import html2pdf from "html2pdf.js";
-import { useRef } from "react";
+// import html2pdf from "html2pdf.js";
+// import { useRef } from "react";
 
 type Mode = "daily" | "monthly";
 
@@ -26,7 +26,7 @@ const MilkYieldReportPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<MilkEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+  // const reportRef = useRef<HTMLDivElement>(null);
 
   const params = useMemo(() => {
     if (mode === "daily") {
@@ -118,28 +118,28 @@ const MilkYieldReportPage: React.FC = () => {
     },
   ];
 
-  const handleDownloadPDF = () => {
-    if (!reportRef.current) return;
+  // const handleDownloadPDF = () => {
+  //   if (!reportRef.current) return;
 
-    const opt = {
-      margin: 0.5,
-      filename: `milk-yield-report-${mode}.pdf`,
-      image: { type: "jpeg" as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: {
-        unit: "in" as const,
-        format: "a4" as const,
-        orientation: "portrait" as const,
-      },
-    };
+  //   const opt = {
+  //     margin: 0.5,
+  //     filename: `milk-yield-report-${mode}.pdf`,
+  //     image: { type: "jpeg" as const, quality: 0.98 },
+  //     html2canvas: { scale: 2 },
+  //     jsPDF: {
+  //       unit: "in" as const,
+  //       format: "a4" as const,
+  //       orientation: "portrait" as const,
+  //     },
+  //   };
 
-    html2pdf().set(opt).from(reportRef.current).save();
-  };
+  //   html2pdf().set(opt).from(reportRef.current).save();
+  // };
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       {/* <div className="mx-auto flex max-w-6xl flex-col gap-6"> */}
-      <div ref={reportRef} className="mx-auto flex max-w-6xl flex-col gap-6">
+      {/* <div ref={reportRef} className="mx-auto flex max-w-6xl flex-col gap-6"> */}
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -244,13 +244,13 @@ const MilkYieldReportPage: React.FC = () => {
                   dense
                   emptyMessage="No cow milk records found."
                 />
-                <button
+                {/* <button
                   onClick={handleDownloadPDF}
                   disabled
                   // className=" bottom-6 right-6 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
                 >
-                  {/* Download PDF */}
-                </button>
+                  Download PDF 
+                </button> */}
               </div>
               {/* Buffalo Milk Table */}
               <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
@@ -271,19 +271,19 @@ const MilkYieldReportPage: React.FC = () => {
                   dense
                   emptyMessage="No buffalo milk records found."
                 />
-                <button
+                {/* <button
                   onClick={handleDownloadPDF}
                   disabled
                   // className=" bottom-6 right-6 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
                 >
-                  {/* Download PDF */}
-                </button>
+                  Download PDF 
+                </button> */}
               </div>
             </div>
           </>
         )}
       </div>
-    </div>
+    // </div>
     // </div>
   );
 };
