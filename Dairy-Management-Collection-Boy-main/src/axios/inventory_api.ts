@@ -21,3 +21,5 @@ export const updateInventoryItem = (id: string, data: Partial<InventoryItem>) =>
 
 export const deleteInventoryItem = (id: string) =>
   api.delete<{ message: string }>(`/inventory/${id}`);
+
+export const getInventoryReport = () => api.get("/inventory/report");

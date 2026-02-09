@@ -1,11 +1,13 @@
 import { api } from "./axiosInstance";
 import type { MilkCollection } from "../types/milkCollection";
+import type { MilkType } from "../types/farmer";
 
 export type AddMilkRequest = {
   date: string;
   shift: "Morning" | "Evening";
   farmerId: string;
   quantity: number;
+    milkType: MilkType;
   fat: number;
   snf: number;
   rate: number;

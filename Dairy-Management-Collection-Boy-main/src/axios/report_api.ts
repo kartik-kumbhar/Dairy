@@ -22,6 +22,7 @@ export type MilkEntry = {
   snf?: number;
   rate: number;
   totalAmount: number;
+  milkType: "cow" | "buffalo";
 };
 
 export type DailyReportResponse = {
@@ -92,6 +93,7 @@ export type MonthlyMilkReportResponse = {
   dayCount: number;
   farmerCount: number;
   entryCount: number;
+  entries: MilkEntry[];
 
   dayRows: {
     date: string;

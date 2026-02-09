@@ -92,3 +92,55 @@ export const updateInventory = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getInventoryReport = async (req, res) => {
+  try {
+    const items = await Inventory.find();
+
+    let totalValue = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+
+    const report = items.map((i) => {
+      const stock = i.currentStock ?? 0;
+      const min = i.minStock ?? 0;
+      const value = stock * (i.purchaseRate ?? 0);
+
+      totalValue += value;
+
+      if (stock <= 0) outOfStock += 1;
+      else if (stock < min) lowStock += 1;
+
+      return {
+        _id: i._id,
+        code: i.code,
+        name: i.name,
+        category: i.category,
+        unit: i.unit,
+        currentStock: stock,
+        minStock: min,
+        purchaseRate: i.purchaseRate,
+        stockValue: value,
+        status:
+          stock <= 0
+            ? "Out of Stock"
+            : stock < min
+            ? "Low Stock"
+            : "In Stock",
+        updatedAt: i.updatedAt,
+      };
+    });
+
+    res.json({
+      summary: {
+        totalItems: items.length,
+        totalValue,
+        lowStock,
+        outOfStock,
+      },
+      data: report,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

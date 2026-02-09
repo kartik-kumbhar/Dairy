@@ -152,10 +152,11 @@ const MilkCollectionListPage: React.FC = () => {
               : "bg-[#457B9D]/10 text-[#457B9D]"
           }`}
         >
-          {row.milkType === "cow" ? "🐄" : "🐃"} {row.milkType}
+          {row.milkType === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
         </span>
       ),
     },
+
     {
       id: "liters",
       header: "Liters",
@@ -173,7 +174,7 @@ const MilkCollectionListPage: React.FC = () => {
       header: "SNF %",
       cell: (row) => row.snf.toFixed(1),
       align: "center",
-    }, 
+    },
     {
       id: "rate",
       header: "Rate",
@@ -194,7 +195,7 @@ const MilkCollectionListPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setDeleteTarget(row)}
-          className="rounded-md px-2 py-1 text-xs font-medium text-[#E76F51] hover:bg-[#E76F51]/10"
+            className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
         >
           Delete
         </button>
@@ -324,10 +325,15 @@ const MilkCollectionListPage: React.FC = () => {
               onChange={(e) =>
                 setMilkFilter(e.target.value as "All" | MilkType)
               }
+              // options={[
+              //   { label: "All Types", value: "All" },
+              //   { label: "Cow", value: "Cow" },
+              //   { label: "Buffalo", value: "Buffalo" },
+              // ]}
               options={[
                 { label: "All Types", value: "All" },
-                { label: "Cow", value: "Cow" },
-                { label: "Buffalo", value: "Buffalo" },
+                { label: "Cow", value: "cow" },
+                { label: "Buffalo", value: "buffalo" },
               ]}
               containerClassName="w-36"
             />

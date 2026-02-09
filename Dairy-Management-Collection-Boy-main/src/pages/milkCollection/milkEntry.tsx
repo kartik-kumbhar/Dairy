@@ -7,15 +7,24 @@ import Loader from "../../components/loader";
 import { getFarmers } from "../../axios/farmer_api";
 import {
   addMilkEntry,
+  deleteMilkEntry,
   getMilkEntries,
   getRateForMilk,
 } from "../../axios/milk_api";
 
 import type { MilkCollection, MilkShift } from "../../types/milkCollection";
-import type { Farmer } from "../../types/farmer";
+import type { Farmer, MilkType } from "../../types/farmer";
 import toast from "react-hot-toast";
+import ConfirmModal from "../../components/confirmModal";
 
 type DateFilterMode = "day" | "month" | "all";
+
+const getDefaultShift = (): MilkShift => {
+  const now = new Date();
+  const hour = now.getHours(); // 0–23
+
+  return hour < 12 ? "Morning" : "Evening";
+};
 
 const MilkEntryPage: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -34,13 +43,15 @@ const MilkEntryPage: React.FC = () => {
 
   // Form state
   const [date, setDate] = useState<string>(todayISO);
-  const [shift, setShift] = useState<MilkShift>("Morning");
+  const [shift, setShift] = useState<MilkShift>(() => getDefaultShift());
   const [farmerId, setFarmerId] = useState<string>("");
   const [liters, setLiters] = useState<string>("");
   const [fat, setFat] = useState<string>("");
   const [snf, setSnf] = useState<string>("");
   const [rate, setRate] = useState<string>("0.00");
   const [loadingRate, setLoadingRate] = useState(false);
+  const [milkType, setMilkType] = useState<MilkType | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MilkCollection | null>(null);
 
   const [remarks, setRemarks] = useState<string>("");
 
@@ -86,14 +97,31 @@ const MilkEntryPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!selectedFarmer) return;
+
+    if (selectedFarmer.milkType.length === 1) {
+      setMilkType(selectedFarmer.milkType[0]);
+    } else {
+      setMilkType(null);
+    }
+  }, [selectedFarmer]);
+
+  useEffect(() => {
+    if (date === todayISO) {
+      setShift(getDefaultShift());
+    }
+  }, [date, todayISO]);
+
+  useEffect(() => {
     const fetchRate = async () => {
-      if (!selectedFarmer || !fat || !snf || !date) return;
+      if (!selectedFarmer || !milkType || !fat || !snf || !date) return;
 
       try {
         setLoadingRate(true);
 
         const res = await getRateForMilk({
-          milkType: selectedFarmer.milkType,
+          // milkType: selectedFarmer.milkType,
+          milkType,
           fat: Number(fat),
           snf: Number(snf),
           date,
@@ -109,10 +137,14 @@ const MilkEntryPage: React.FC = () => {
     };
 
     fetchRate();
-  }, [selectedFarmer, fat, snf, date]);
+  }, [selectedFarmer, fat, snf, date, milkType]);
 
   const handleSave = async () => {
     if (!validate() || !selectedFarmer) return;
+    if (!milkType) {
+      toast.error("Please select milk type");
+      return false;
+    }
 
     try {
       setSaving(true);
@@ -121,6 +153,7 @@ const MilkEntryPage: React.FC = () => {
         date,
         shift,
         farmerId: selectedFarmer._id,
+        milkType,
         quantity: Number(liters),
         fat: Number(fat),
         snf: Number(snf),
@@ -129,7 +162,7 @@ const MilkEntryPage: React.FC = () => {
 
       const refreshed = await getMilkEntries();
       setCollections(refreshed.data);
-    toast.success("Milk collection saved successfully");
+      toast.success("Milk collection saved successfully");
       resetForm();
     } catch (err) {
       console.error("Failed to save milk entry:", err);
@@ -199,6 +232,22 @@ const MilkEntryPage: React.FC = () => {
     label: `${f.code} - ${f.name}`,
     value: f._id,
   }));
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await deleteMilkEntry(deleteTarget._id);
+
+      setCollections((prev) => prev.filter((c) => c._id !== deleteTarget._id));
+
+      toast.success("Milk entry deleted successfully");
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast.error("Failed to delete milk entry");
+    }
+  };
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
@@ -273,6 +322,31 @@ const MilkEntryPage: React.FC = () => {
                   )}
                 </div>
               </div>
+              {/* Milk type if they have both Cow & Buffalo */}
+              {selectedFarmer && selectedFarmer.milkType.length > 1 && (
+                <div className="mt-4">
+                  <span className="text-xs font-medium text-[#5E503F]">
+                    Milk Type <span className="text-red-500">*</span>
+                  </span>
+
+                  <div className="mt-1 flex gap-3">
+                    {selectedFarmer.milkType.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setMilkType(t)}
+                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                          milkType === t
+                            ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                            : "border-[#E9E2C8] text-[#5E503F]"
+                        }`}
+                      >
+                        {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Second row: Farmer Code, Liters, Fat, SNF */}
               <div className="mt-4 grid gap-4 md:grid-cols-4">
@@ -319,22 +393,6 @@ const MilkEntryPage: React.FC = () => {
 
               {/* Third row: Rate, Total Amount, Save */}
               <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-                {/* <InputField
-                  label="Rate (₹)"
-                  requiredLabel
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  error={errors.rate}
-                /> */}
-                {/* <InputField
-                  label="Rate (₹)"
-                  value={autoRate.toFixed(2)}
-                  readOnly
-                  helperText="Auto calculated from rate chart"
-                /> */}
                 <InputField
                   label="Rate (₹)"
                   value={loadingRate ? "Fetching..." : rate}
@@ -465,20 +523,26 @@ const MilkEntryPage: React.FC = () => {
                   <th className="border-b border-[#E9E2C8] px-3 py-2 text-left font-semibold text-[#5E503F]">
                     Farmer Name
                   </th>
-                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-right font-semibold text-[#5E503F]">
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
+                    Milk Type
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
                     Liters
                   </th>
-                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-right font-semibold text-[#5E503F]">
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
                     Fat %
                   </th>
-                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-right font-semibold text-[#5E503F]">
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
                     SNF %
                   </th>
-                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-right font-semibold text-[#5E503F]">
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
                     Rate (₹)
                   </th>
-                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-right font-semibold text-[#5E503F]">
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
                     Total (₹)
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-3 py-2 text-center font-semibold text-[#5E503F]">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -510,20 +574,39 @@ const MilkEntryPage: React.FC = () => {
                       <td className="border-t border-[#E9E2C8] px-3 py-2">
                         {c.farmerName}
                       </td>
-                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-right">
+                      <td>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                            c.milkType === "cow"
+                              ? "bg-[#E76F51]/10 text-[#E76F51]"
+                              : "bg-[#457B9D]/10 text-[#457B9D]"
+                          }`}
+                        >
+                          {c.milkType === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
+                        </span>
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
                         {c.liters.toFixed(2)}
                       </td>
-                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-right">
+                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
                         {c.fat.toFixed(1)}
                       </td>
-                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-right">
+                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
                         {c.snf.toFixed(1)}
                       </td>
-                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-right">
+                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
                         {c.rate.toFixed(2)}
                       </td>
-                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-right">
+                      <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
                         {c.amount.toFixed(2)}
+                      </td>
+                      <td className="text-center">
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -533,6 +616,27 @@ const MilkEntryPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Milk Entry"
+        variant="danger"
+        description={
+          deleteTarget && (
+            <div className="space-y-1 text-sm">
+              <p>Are you sure you want to delete this milk collection entry?</p>
+              <p className="text-xs text-[#5E503F]/70">
+                {deleteTarget.date} – {deleteTarget.shift} –{" "}
+                {deleteTarget.farmerCode} ({deleteTarget.farmerName}) –{" "}
+                {deleteTarget.liters.toFixed(2)} L
+              </p>
+            </div>
+          )
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

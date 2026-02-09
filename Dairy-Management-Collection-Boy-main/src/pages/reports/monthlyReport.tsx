@@ -172,12 +172,7 @@ const MonthlyReportPage: React.FC = () => {
             subtitle="Cow / Buffalo"
             variant="orange"
           />
-          {/* <StatCard
-            title="Days / Farmers / Entries"
-            value={`${stats.dayCount} / ${stats.farmerCount} / ${stats.collectionCount}`}
-            subtitle="Days / Farmers / Collections"
-            variant="green"
-          /> */}
+          
           <StatCard
             title="Days / Farmers / Entries"
             value={`${report?.dayCount ?? 0} / ${report?.farmerCount ?? 0} / ${report?.entryCount ?? 0}`}

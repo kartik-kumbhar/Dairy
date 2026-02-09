@@ -8,11 +8,9 @@ import "./App.css";
 import App from "./App";
 import { FarmerProvider } from "./context/FarmerContext";
 import { Toaster } from "react-hot-toast";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <>
-    <SpeedInsights />
     <Toaster
       position="top-center"
       toastOptions={{

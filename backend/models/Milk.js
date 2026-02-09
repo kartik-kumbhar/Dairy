@@ -51,6 +51,6 @@ const milkSchema = new mongoose.Schema(
 );
 
 // Avoid duplicate entry for same farmer + same date + shift
-milkSchema.index({ farmerId: 1, date: 1, shift: 1 }, { unique: true });
+milkSchema.index({ farmerId: 1, date: 1, shift: 1 ,milkType:1}, { unique: true });
 
 export default mongoose.model("Milk", milkSchema);

@@ -6,7 +6,7 @@ import { addFarmer as addFarmerAPI, getFarmers } from "../axios/farmer_api";
 type AddFarmerInput = {
   name: string;
   mobile: string;
-  milkType: MilkType;
+  milkType: MilkType[];
   address?: string;
 };
 

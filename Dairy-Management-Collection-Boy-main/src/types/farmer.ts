@@ -36,8 +36,9 @@
 //   address?: string;
 // };
 
-
 export type MilkType = "cow" | "buffalo";
+export type FarmerMilkType = MilkType[];
+
 export type FarmerStatus = "Active" | "Inactive";
 
 export interface Farmer {
@@ -45,7 +46,8 @@ export interface Farmer {
   code: string;
   name: string;
   mobile: string;
-  milkType: MilkType;
+  // milkType: MilkType;
+   milkType: FarmerMilkType;
   status: FarmerStatus;
   joinDate: string;
   address?: string;
@@ -54,6 +56,7 @@ export interface Farmer {
 export interface AddFarmerRequest {
   name: string;
   mobile: string;
-  milkType: MilkType;
+  // milkType: MilkType;
+  milkType: FarmerMilkType;
   address?: string;
 }

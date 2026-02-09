@@ -18,7 +18,7 @@ const farmerSchema = new mongoose.Schema(
       match: /^\d{10}$/,
     },
     milkType: {
-      type: String,
+      type: [String],
       enum: ["cow", "buffalo"],
       required: true,
     },

@@ -2,57 +2,9 @@ import Milk from "../models/Milk.js";
 import Farmer from "../models/Farmer.js";
 import RateChart from "../models/RateChart.js";
 
-// export const addMilkEntry = async (req, res) => {
-//   try {
-//     const { farmerId, date, shift, quantity, fat, snf, rate } = req.body;
-
-//     if (
-//       !farmerId ||
-//       !date ||
-//       !shift ||
-//       quantity === undefined ||
-//       rate === undefined ||
-//       fat === undefined ||
-//       snf === undefined
-//     ) {
-//       return res.status(400).json({ message: "Missing required fields" });
-//     }
-
-//     const farmer = await Farmer.findById(farmerId);
-
-//     if (!farmer) {
-//       return res.status(400).json({ message: "Invalid farmer" });
-//     }
-//     const totalAmount = Number(quantity) * Number(rate);
-
-//     const milk = await Milk.create({
-//       farmerId,
-//       date,
-//       shift,
-//       milkType: farmer.milkType.toLowerCase(),
-//       quantity,
-//       fat,
-//       snf,
-//       rate,
-//       totalAmount,
-//     });
-
-//     res.status(201).json(milk);
-//   } catch (err) {
-//     if (err.code === 11000) {
-//       return res.status(409).json({
-//         message: "Milk entry already exists for this farmer, date and shift",
-//       });
-//     }
-
-//     console.error("Add milk failed:", err);
-//     res.status(500).json({ message: "Failed to save milk entry" });
-//   }
-// };
-
 export const addMilkEntry = async (req, res) => {
   try {
-    const { farmerId, date, shift, quantity, fat, snf } = req.body;
+    const { farmerId, date, shift, quantity, fat, snf, milkType } = req.body;
 
     if (
       !farmerId ||
@@ -70,9 +22,14 @@ export const addMilkEntry = async (req, res) => {
       return res.status(400).json({ message: "Invalid farmer" });
     }
 
-    const milkType = farmer.milkType.toLowerCase();
+    // const milkType = farmer.milkType.toLowerCase();
+    if (!farmer.milkType.includes(milkType)) {
+      return res.status(400).json({
+        message: "Selected milk type not allowed for this farmer",
+      });
+    }
 
-    // 🔥 1. Find applicable rate chart by date
+    // 1. Find applicable rate chart by date
     const chart = await RateChart.findOne({
       milkType,
       effectiveFrom: { $lte: date },
@@ -84,7 +41,7 @@ export const addMilkEntry = async (req, res) => {
       });
     }
 
-    // 🔥 2. Find rate from FAT/SNF matrix
+    // 2. Find rate from FAT/SNF matrix
     const fatIndex = chart.fats.indexOf(Number(fat));
     const snfIndex = chart.snfs.indexOf(Number(snf));
 
@@ -97,7 +54,7 @@ export const addMilkEntry = async (req, res) => {
     const rate = chart.rates[fatIndex][snfIndex];
     const totalAmount = Number(quantity) * rate;
 
-    // 🔥 3. Save milk entry
+    // 3. Save milk entry
     const milk = await Milk.create({
       farmerId,
       date,
@@ -144,7 +101,8 @@ export const getMilkEntries = async (req, res) => {
         farmerId: m.farmerId._id,
         farmerName: m.farmerId.name,
         farmerCode: m.farmerId.code,
-        milkType: m.milkType === "cow" ? "Cow" : "Buffalo",
+        // milkType: m.milkType === "cow" ? "Cow" : "Buffalo",
+        milkType: m.milkType,
         liters: m.quantity,
         fat: m.fat,
         snf: m.snf,
@@ -161,9 +119,15 @@ export const getMilkEntries = async (req, res) => {
 export const deleteMilkEntry = async (req, res) => {
   try {
     const { id } = req.params;
-    await Milk.findByIdAndDelete(id);
-    res.json({ message: "Milk entry deleted" });
+
+    const deleted = await Milk.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Milk entry not found" });
+    }
+
+    res.json({ message: "Milk entry deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Delete milk entry failed:", err);
+    res.status(500).json({ message: "Failed to delete milk entry" });
   }
 };

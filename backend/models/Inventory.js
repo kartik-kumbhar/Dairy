@@ -7,7 +7,6 @@ const inventorySchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-
     name: {
       type: String,
       required: true,
@@ -17,27 +16,22 @@ const inventorySchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     unit: {
       type: String,
       required: true,
     },
-
     currentStock: {
       type: Number,
       default: 0,
     },
-
     minStock: {
       type: Number,
       default: 0,
     },
-
     purchaseRate: {
       type: Number,
       default: 0,
     },
-
     sellingRate: {
       type: Number,
       default: 0,

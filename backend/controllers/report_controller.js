@@ -226,11 +226,10 @@ export const monthlyMilkReport = async (req, res) => {
       totalAmount,
       cowLiters,
       buffaloLiters,
-
       dayCount: dayMap.size,
       farmerCount: farmerMap.size,
       entryCount: entries.length,
-
+      entries,
       dayRows: Array.from(dayMap.values()).sort((a, b) =>
         a.date.localeCompare(b.date),
       ),

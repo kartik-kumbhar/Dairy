@@ -14,7 +14,9 @@ const AddFarmerPage: React.FC = () => {
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
-  const [milkType, setMilkType] = useState<MilkType>("cow");
+  // const [milkType, setMilkType] = useState<MilkType>("cow");
+  const [milkType, setMilkType] = useState<MilkType[]>(["cow"]);
+
   const [address, setAddress] = useState("");
 
   const [errors, setErrors] = useState<{
@@ -24,6 +26,11 @@ const AddFarmerPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const validate = () => {
+    if (milkType.length === 0) {
+      toast.error("Select at least one milk type");
+      return;
+    }
+
     const next: typeof errors = {};
     if (!name.trim()) next.name = "Farmer name is required.";
     if (!mobile.trim()) {
@@ -42,8 +49,9 @@ const AddFarmerPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
-          toast.error("Please fix the form errors");
-      return};
+      toast.error("Please fix the form errors");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -54,7 +62,7 @@ const AddFarmerPage: React.FC = () => {
         milkType,
         address,
       });
-    toast.success("Farmer added successfully");
+      toast.success("Farmer added successfully");
 
       navigate(ROUTES.farmers.list.path);
     } catch (error) {
@@ -68,9 +76,15 @@ const AddFarmerPage: React.FC = () => {
   const resetForm = () => {
     setName("");
     setMobile("");
-    setMilkType("cow");
+    setMilkType(["cow"]);
     setAddress("");
     setErrors({});
+  };
+
+  const toggleMilkType = (type: MilkType) => {
+    setMilkType((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
   };
 
   return (
@@ -142,7 +156,7 @@ const AddFarmerPage: React.FC = () => {
                   Milk Type <span className="text-red-500">*</span>
                 </span>
                 <div className="mt-1 flex gap-3">
-                  {(["cow", "buffalo"] as MilkType[]).map((t) => (
+                  {/* {(["cow", "buffalo"] as MilkType[]).map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -155,7 +169,25 @@ const AddFarmerPage: React.FC = () => {
                     >
                       {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
                     </button>
-                  ))}
+                  ))} */}
+                  {(["cow", "buffalo"] as MilkType[]).map((t) => {
+                    const active = milkType.includes(t);
+
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleMilkType(t)}
+                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                          active
+                            ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                            : "border-[#E9E2C8] text-[#5E503F]"
+                        }`}
+                      >
+                        {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

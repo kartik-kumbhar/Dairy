@@ -7,6 +7,8 @@ import type { Farmer } from "../../types/farmer";
 import InputField from "../../components/inputField";
 import StatCard from "../../components/statCard";
 import ConfirmModal from "../../components/confirmModal";
+import { deleteFarmer } from "../../axios/farmer_api";
+import toast from "react-hot-toast";
 
 import { ROUTES } from "../../constants/routes";
 import { useFarmerContext } from "../../context/FarmerContext";
@@ -28,8 +30,13 @@ const FarmerListPage: React.FC = () => {
   // ---- Stats ----
   const stats = useMemo(() => {
     const total = allFarmers.length;
-    const cow = allFarmers.filter((f) => f.milkType === "cow").length;
-    const buffalo = allFarmers.filter((f) => f.milkType === "buffalo").length;
+    // const cow = allFarmers.filter((f) => f.milkType === "cow").length;
+    // const buffalo = allFarmers.filter((f) => f.milkType === "buffalo").length;
+    const cow = allFarmers.filter((f) => f.milkType.includes("cow")).length;
+    const buffalo = allFarmers.filter((f) =>
+      f.milkType.includes("buffalo"),
+    ).length;
+
     const active = allFarmers.filter((f) => f.status === "Active").length;
     const inactive = total - active;
     return { total, cow, buffalo, active, inactive };
@@ -39,8 +46,11 @@ const FarmerListPage: React.FC = () => {
   const filteredFarmers = useMemo(() => {
     const term = search.trim().toLowerCase();
     return allFarmers.filter((f) => {
+      // const matchesMilk =
+      //   milkFilter === "All" ? true : f.milkType === milkFilter;
       const matchesMilk =
-        milkFilter === "All" ? true : f.milkType === milkFilter;
+        milkFilter === "All" ? true : f.milkType.includes(milkFilter);
+
       const matchesStatus =
         statusFilter === "All" ? true : f.status === statusFilter;
       const matchesSearch =
@@ -51,6 +61,20 @@ const FarmerListPage: React.FC = () => {
       return matchesMilk && matchesStatus && matchesSearch;
     });
   }, [allFarmers, milkFilter, statusFilter, search]);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await deleteFarmer(deleteTarget._id);
+
+      toast.success("Farmer deleted successfully");
+      setDeleteTarget(null);
+      reloadFarmers(); // refresh list
+    } catch (err) {
+      console.error("Delete farmer failed:", err);
+      toast.error("Failed to delete farmer");
+    }
+  };
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
@@ -201,6 +225,9 @@ const FarmerListPage: React.FC = () => {
                 <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
                   Join Date
                 </th>
+                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -232,16 +259,22 @@ const FarmerListPage: React.FC = () => {
                       {f.mobile}
                     </td>
                     <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-                          f.milkType === "cow"
-                            ? "bg-[#E76F51]/10 text-[#E76F51]"
-                            : "bg-[#457B9D]/10 text-[#457B9D]"
-                        }`}
-                      >
-                        {f.milkType === "cow" ? "🐄" : "🐃"} {f.milkType}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {f.milkType.map((type) => (
+                          <span
+                            key={type}
+                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
+                              type === "cow"
+                                ? "bg-[#E76F51]/10 text-[#E76F51]"
+                                : "bg-[#457B9D]/10 text-[#457B9D]"
+                            }`}
+                          >
+                            {type === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
+                          </span>
+                        ))}
+                      </div>
                     </td>
+
                     <td className="border-t border-[#E9E2C8] px-4 py-2">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -255,6 +288,15 @@ const FarmerListPage: React.FC = () => {
                     </td>
                     <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
                       {f.joinDate}
+                    </td>
+                    <td className="border-t border-[#E9E2C8] px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(f)}
+                        className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -281,8 +323,8 @@ const FarmerListPage: React.FC = () => {
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={() => setDeleteTarget(null)}
-        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        onCancel={handleDelete}
       />
     </div>
   );
