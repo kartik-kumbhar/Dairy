@@ -52,7 +52,9 @@ const DailyReportPage: React.FC = () => {
     const farmers = new Set<string>();
 
     report.entries.forEach((e) => {
-      farmers.add(e.farmerId._id);
+      // farmers.add(e.farmerId._id);
+      if (e.farmerId?._id) farmers.add(e.farmerId._id);
+
       if (e.shift === "Morning") morningLiters += e.quantity;
       if (e.shift === "Evening") eveningLiters += e.quantity;
     });
@@ -80,13 +82,15 @@ const DailyReportPage: React.FC = () => {
       id: "farmerName",
       header: "Farmer Name",
       align: "center",
-      cell: (row) => row.farmerId.name,
+      // cell: (row) => row.farmerId.name,
+      cell: (row) => row.farmerId?.name ?? "Deleted Farmer",
     },
     {
       id: "mobile",
       header: "Mobile",
       align: "center",
-      cell: (row) => row.farmerId.mobile,
+      // cell: (row) => row.farmerId.mobile,
+      cell: (row) => row.farmerId?.mobile ?? "-",
     },
     {
       id: "quantity",

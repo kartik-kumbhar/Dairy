@@ -103,10 +103,20 @@ export const getMonthlyBillingReport = async (req, res) => {
       return res.status(400).json({ message: "Month is required" });
     }
 
-    const bills = await Bill.find({ billMonth: month }).populate(
-      "farmerId",
-      "name mobile",
-    );
+    // const bills = await Bill.find({ billMonth: month }).populate(
+    //   "farmerId",
+    //   "name mobile",
+    // );
+
+    const bills = await Bill.find({ billMonth: month })
+      .populate("farmerId", "name mobile")
+      .lean();
+
+    // make safe if farmer deleted
+    const safeBills = bills.map((b) => ({
+      ...b,
+      farmerId: b.farmerId ?? { name: "Deleted Farmer", mobile: "-" },
+    }));
 
     let totals = {
       totalMilkAmount: 0,
@@ -128,7 +138,7 @@ export const getMonthlyBillingReport = async (req, res) => {
       month,
       billCount: bills.length,
       ...totals,
-      rows: bills,
+      rows: safeBills,
     });
   } catch (err) {
     console.error(err);
