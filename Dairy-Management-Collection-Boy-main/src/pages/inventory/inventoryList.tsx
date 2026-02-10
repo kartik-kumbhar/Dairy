@@ -7,6 +7,8 @@ import InputField from "../../components/inputField";
 import SelectField from "../../components/selectField";
 import ConfirmModal from "../../components/confirmModal";
 import type { InventoryCategory, InventoryItem } from "../../types/inventory";
+import { sellInventoryToFarmer } from "../../axios/inventory_transaction_api";
+import { getFarmers } from "../../axios/farmer_api";
 
 import {
   getInventoryItems,
@@ -40,6 +42,15 @@ const InventoryListPage: React.FC = () => {
   const [editMinStock, setEditMinStock] = useState<string>("0");
   const [editPurchaseRate, setEditPurchaseRate] = useState<string>("");
   const [editSellingRate, setEditSellingRate] = useState<string>("");
+  const [sellItem, setSellItem] = useState<InventoryItem | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [farmers, setFarmers] = useState<any[]>([]);
+  const [sellFarmerId, setSellFarmerId] = useState("");
+  const [sellQty, setSellQty] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "Cash" | "Bill" | "Installment"
+  >("Cash");
+  const [paidAmount, setPaidAmount] = useState("");
 
   const [editErrors, setEditErrors] = useState<{
     name?: string;
@@ -60,6 +71,53 @@ const InventoryListPage: React.FC = () => {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadFarmers = async () => {
+      const res = await getFarmers();
+      setFarmers(res.data);
+    };
+    loadFarmers();
+  }, []);
+
+  const openSellModal = (item: InventoryItem) => {
+    setSellItem(item);
+    setSellFarmerId("");
+    setSellQty("");
+    setPaidAmount("");
+    setPaymentMethod("Cash");
+  };
+
+  const handleSell = async () => {
+    if (!sellItem) return;
+
+    const qty = parseFloat(sellQty);
+    if (!qty || qty <= 0) {
+      toast.error("Enter valid quantity");
+      return;
+    }
+
+    try {
+      await sellInventoryToFarmer({
+        farmerId: sellFarmerId,
+        itemId: sellItem._id,
+        quantity: qty,
+        paymentMethod,
+        paidAmount: paidAmount ? parseFloat(paidAmount) : 0,
+      });
+
+      toast.success("Item sold to farmer");
+
+      // refresh inventory list
+      const res = await getInventoryItems();
+      setItems(res.data);
+
+      setSellItem(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      toast.error("Failed to sell item");
+    }
+  };
 
   const filteredItems = useMemo(() => {
     return items.filter((i) => {
@@ -300,6 +358,7 @@ const InventoryListPage: React.FC = () => {
           >
             Stock Out
           </button>
+
           <button
             type="button"
             onClick={() => openEdit(row)}
@@ -313,6 +372,13 @@ const InventoryListPage: React.FC = () => {
             className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-[#E76F51] hover:bg-[#E76F51]/10"
           >
             Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => openSellModal(row)}
+            className="rounded-md border border-[#E9E2C8 px-2 py-1 bg-[#2A9D8F] text-white hover:bg-[#F8F4E3]"
+          >
+            Sell
           </button>
         </div>
       ),
@@ -588,6 +654,72 @@ const InventoryListPage: React.FC = () => {
         onConfirm={deleteItem}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {sellItem && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-lg border border-[#E9E2C8] bg-white shadow-xl">
+            <div className="bg-[#2A9D8F] px-4 py-2 text-white font-semibold">
+              Sell Item – {sellItem.name}
+            </div>
+
+            <div className="space-y-3 p-4">
+              <SelectField
+                label="Farmer"
+                value={sellFarmerId}
+                onChange={(e) => setSellFarmerId(e.target.value)}
+                options={[
+                  { label: "Select Farmer", value: "" },
+                  ...farmers.map((f) => ({
+                    label: `${f.code} - ${f.name}`,
+                    value: f._id,
+                  })),
+                ]}
+              />
+
+              <InputField
+                label="Quantity"
+                type="number"
+                value={sellQty}
+                onChange={(e) => setSellQty(e.target.value)}
+              />
+
+              <SelectField
+                label="Payment Method"
+                value={paymentMethod}
+                onChange={(e) =>
+                  setPaymentMethod(
+                    e.target.value as "Cash" | "Bill" | "Installment",
+                  )
+                }
+                options={[
+                  { label: "Cash", value: "Cash" },
+                  { label: "Bill Deduction", value: "Bill" },
+                  { label: "Installment", value: "Installment" },
+                ]}
+              />
+
+              {paymentMethod !== "Bill" && (
+                <InputField
+                  label="Paid Amount"
+                  type="number"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 p-4">
+              <button onClick={() => setSellItem(null)}>Cancel</button>
+              <button
+                onClick={handleSell}
+                className="bg-[#2A9D8F] text-white px-4 py-1 rounded"
+              >
+                Sell
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

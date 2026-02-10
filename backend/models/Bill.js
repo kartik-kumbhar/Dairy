@@ -50,6 +50,11 @@ const billSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-billSchema.index({ farmerId: 1, periodFrom: 1, periodTo: 1 }, { unique: true });
+// billSchema.index({ farmerId: 1, periodFrom: 1, periodTo: 1 }, { unique: true });
+billSchema.index(
+  { farmerId: 1, billMonth: 1 },
+  { unique: true }
+);
+
 
 export default mongoose.model("Bill", billSchema);

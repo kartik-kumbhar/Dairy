@@ -13,6 +13,8 @@ import billRoutes from "./routes/bill_routes.js";
 import dashboardRoutes from "./routes/dashboard_routes.js";
 import rateChartRoutes from "./routes/rateChart_routes.js";
 import reportRoutes from "./routes/report_routes.js";
+import inventoryTransactionRoutes from "./routes/inventory_transaction_routes.js";
+
 dotenv.config({ debug: false });
 const app = express();
 
@@ -62,6 +64,7 @@ app.use("/api/bills", billRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rate-chart", rateChartRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/inventory-transactions", inventoryTransactionRoutes);
 
 const PORT = process.env.PORT;
 

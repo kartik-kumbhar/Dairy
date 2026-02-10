@@ -138,8 +138,8 @@ const MilkYieldReportPage: React.FC = () => {
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
-      {/* <div className="mx-auto flex max-w-6xl flex-col gap-6"> */}
-      {/* <div ref={reportRef} className="mx-auto flex max-w-6xl flex-col gap-6"> */}
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        {/* <div ref={reportRef} className="mx-auto flex max-w-6xl flex-col gap-6"> */}
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -203,7 +203,7 @@ const MilkYieldReportPage: React.FC = () => {
         {loading || !data ? (
           <p className="text-sm text-[#5E503F]/60">Loading...</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
             <StatCard
               title="Cow Milk (L)"
               value={data.cow.liters.toFixed(2)}
@@ -283,8 +283,7 @@ const MilkYieldReportPage: React.FC = () => {
           </>
         )}
       </div>
-    // </div>
-    // </div>
+    </div>
   );
 };
 

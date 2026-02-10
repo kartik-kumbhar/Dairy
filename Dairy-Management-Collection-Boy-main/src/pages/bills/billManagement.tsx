@@ -215,7 +215,7 @@ const BillManagementPage: React.FC = () => {
         scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
 
       let success = 0;
-      let skipped = 0;
+      // let skipped = 0;
       const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
       for (const f of farmersToProcess) {
@@ -228,14 +228,14 @@ const BillManagementPage: React.FC = () => {
           success++;
         } catch (err: unknown) {
           if (axios.isAxiosError(err) && err.response?.status === 409) {
-            skipped++; // bill already exists
+            // skipped++; // bill already exists
           } else {
             throw err; // real error
           }
         }
       }
 
-      toast.success(`Bills generated: ${success}\nAlready existed: ${skipped}`);
+      toast.success(`Bills generated: ${success}`);//\nAlready existed: ${skipped}
 
       await loadBills();
       setCalculatedRows([]);
