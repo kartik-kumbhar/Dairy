@@ -12,6 +12,12 @@ import {
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
 // import html2pdf from "html2pdf.js";
 // import { useRef } from "react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import toast from "react-hot-toast";
 
 type Mode = "daily" | "monthly";
 
@@ -118,30 +124,86 @@ const MilkYieldReportPage: React.FC = () => {
     },
   ];
 
-  // const handleDownloadPDF = () => {
-  //   if (!reportRef.current) return;
+  const formatRows = (list: MilkEntry[]) =>
+    list.map((e) => ({
+      Date: e.date,
+      Shift: e.shift,
+      Farmer: e.farmerId?.name ?? "-",
+      Liters: Number(e.quantity).toFixed(2),
+      Amount: Number(e.totalAmount).toFixed(2),
+    }));
 
-  //   const opt = {
-  //     margin: 0.5,
-  //     filename: `milk-yield-report-${mode}.pdf`,
-  //     image: { type: "jpeg" as const, quality: 0.98 },
-  //     html2canvas: { scale: 2 },
-  //     jsPDF: {
-  //       unit: "in" as const,
-  //       format: "a4" as const,
-  //       orientation: "portrait" as const,
-  //     },
-  //   };
+  // Export Excel
+  const exportCowExcel = () => {
+    if (!cowEntries.length) return toast.error("No cow records");
 
-  //   html2pdf().set(opt).from(reportRef.current).save();
-  // };
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows(cowEntries));
+    XLSX.utils.book_append_sheet(wb, ws, "Cow Milk");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "Cow-Milk.xlsx");
+  };
+
+  const exportBuffaloExcel = () => {
+    if (!buffaloEntries.length) return toast.error("No buffalo records");
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows(buffaloEntries));
+    XLSX.utils.book_append_sheet(wb, ws, "Buffalo Milk");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "Buffalo-Milk.xlsx");
+  };
+
+  //Export PDF
+  const exportCowPDF = () => {
+    if (!cowEntries.length) return toast.error("No cow records");
+
+    const doc = new jsPDF();
+    doc.text("Cow Milk Report", 14, 10);
+
+    autoTable(doc, {
+      head: [["Date", "Shift", "Farmer", "Liters", "Amount"]],
+      body: cowEntries.map((e) => [
+        e.date,
+        e.shift,
+        e.farmerId?.name ?? "-",
+        e.quantity.toFixed(2),
+        `₹ ${e.totalAmount.toFixed(2)}`,
+      ]),
+      startY: 20,
+    });
+
+    doc.save("Cow-Milk.pdf");
+  };
+
+  const exportBuffaloPDF = () => {
+    if (!buffaloEntries.length) return toast.error("No buffalo records");
+
+    const doc = new jsPDF();
+    doc.text("Buffalo Milk Report", 14, 10);
+
+    autoTable(doc, {
+      head: [["Date", "Shift", "Farmer", "Liters", "Amount"]],
+      body: buffaloEntries.map((e) => [
+        e.date,
+        e.shift,
+        e.farmerId?.name ?? "-",
+        e.quantity.toFixed(2),
+        `₹ ${e.totalAmount.toFixed(2)}`,
+      ]),
+      startY: 20,
+    });
+
+    doc.save("Buffalo-Milk.pdf");
+  };
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        {/* <div ref={reportRef} className="mx-auto flex max-w-6xl flex-col gap-6"> */}
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[#5E503F]">
               Milk Yield Report
@@ -175,7 +237,7 @@ const MilkYieldReportPage: React.FC = () => {
         <ReportSwitcher />
 
         {/* Daily / Monthly toggle */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-2">
           <button
             onClick={() => setMode("daily")}
             className={`px-4 py-1.5 text-sm rounded-md ${
@@ -203,7 +265,7 @@ const MilkYieldReportPage: React.FC = () => {
         {loading || !data ? (
           <p className="text-sm text-[#5E503F]/60">Loading...</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Cow Milk (L)"
               value={data.cow.liters.toFixed(2)}
@@ -225,7 +287,7 @@ const MilkYieldReportPage: React.FC = () => {
           <>
             <div className="space-y-4">
               {/* Cow Milk Table */}
-              <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm space-y-3">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-[#5E503F]">
                     Cow Milk Collection
@@ -244,13 +306,20 @@ const MilkYieldReportPage: React.FC = () => {
                   dense
                   emptyMessage="No cow milk records found."
                 />
-                {/* <button
-                  onClick={handleDownloadPDF}
-                  disabled
-                  // className=" bottom-6 right-6 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
-                >
-                  Download PDF 
-                </button> */}
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={exportCowExcel}
+                    className="rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-excel"></i> Excel
+                  </button>
+                  <button
+                    onClick={exportCowPDF}
+                    className="rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-pdf"></i> PDF
+                  </button>
+                </div>
               </div>
               {/* Buffalo Milk Table */}
               <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
@@ -271,13 +340,22 @@ const MilkYieldReportPage: React.FC = () => {
                   dense
                   emptyMessage="No buffalo milk records found."
                 />
-                {/* <button
-                  onClick={handleDownloadPDF}
-                  disabled
-                  // className=" bottom-6 right-6 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
-                >
-                  Download PDF 
-                </button> */}
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={exportBuffaloExcel}
+                    className="rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-excel"></i> Excel
+                  </button>
+
+                  <button
+                    onClick={exportBuffaloPDF}
+                    className="rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-pdf"></i> PDF
+                  </button>
+                </div>
               </div>
             </div>
           </>
@@ -286,5 +364,4 @@ const MilkYieldReportPage: React.FC = () => {
     </div>
   );
 };
-
 export default MilkYieldReportPage;

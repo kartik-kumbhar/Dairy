@@ -10,6 +10,12 @@ import { getDailyReport } from "../../axios/report_api";
 import type { DailyReportResponse } from "../../axios/report_api";
 type DailyReportEntry = DailyReportResponse["entries"][number];
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import toast from "react-hot-toast";
+
 const DailyReportPage: React.FC = () => {
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
@@ -133,6 +139,73 @@ const DailyReportPage: React.FC = () => {
       (e) => e.shift?.toLowerCase() === shiftFilter.toLowerCase(),
     );
   }, [report, shiftFilter]);
+
+
+  //Export
+  const formatRows = () =>
+  tableData.map((e) => ({
+    Shift: e.shift,
+    Farmer: e.farmerId?.name ?? "Deleted Farmer",
+    Mobile: e.farmerId?.mobile ?? "-",
+    Liters: e.quantity.toFixed(2),
+    FAT: (e.fat ?? 0).toFixed(1),
+    SNF: (e.snf ?? 0).toFixed(1),
+    Rate: e.rate.toFixed(2),
+    Amount: e.totalAmount.toFixed(2),
+  }));
+
+  // Export Excel 
+  const exportExcel = () => {
+  if (!tableData.length) return toast.error("No records to export");
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(formatRows());
+  XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
+
+  const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(
+    new Blob([buffer]),
+    `Daily-Report-${selectedDate}-${shiftFilter}.xlsx`,
+  );
+};
+
+//Export PDF
+const exportPDF = () => {
+  if (!tableData.length) return toast.error("No records to export");
+
+  const doc = new jsPDF();
+  doc.text(
+    `Daily Report - ${selectedDate} (${shiftFilter})`,
+    14,
+    10,
+  );
+
+  autoTable(doc, {
+    head: [[
+      "Shift",
+      "Farmer",
+      "Mobile",
+      "Liters",
+      "FAT",
+      "SNF",
+      "Rate",
+      "Amount",
+    ]],
+    body: tableData.map((e) => [
+      e.shift,
+      e.farmerId?.name ?? "Deleted Farmer",
+      e.farmerId?.mobile ?? "-",
+      e.quantity.toFixed(2),
+      (e.fat ?? 0).toFixed(1),
+      (e.snf ?? 0).toFixed(1),
+      `₹ ${e.rate.toFixed(2)}`,
+      `₹ ${e.totalAmount.toFixed(2)}`,
+    ]),
+    startY: 20,
+  });
+
+  doc.save(`Daily-Report-${selectedDate}-${shiftFilter}.pdf`);
+};
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
@@ -265,6 +338,23 @@ const DailyReportPage: React.FC = () => {
             />
           </>
         )}
+        <div className="mt-0 flex justify-end gap-2">
+              <button
+                onClick={exportExcel}
+                className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+              >
+                <i className="fa-solid fa-file-excel"></i>
+                Excel
+              </button>
+
+              <button
+                onClick={exportPDF}
+                className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+              >
+                <i className="fa-solid fa-file-pdf"></i>
+                PDF
+              </button>
+            </div>
       </div>
     </div>
   );

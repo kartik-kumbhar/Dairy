@@ -84,26 +84,10 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   };
 }
 
-// Find matrix rate for exactly matching FAT + SNF, if present
-// function findMatrixRate(
-//   chart: MilkRateChart,
-//   fat: number,
-//   snf: number,
-// ): number | undefined {
-//   const row = chart.fats.indexOf(fat);
-//   const col = chart.snfs.indexOf(snf);
-//   if (row === -1 || col === -1) return undefined;
-//   return chart.rates[row][col];
-// }
-
 const RateChartPage: React.FC = () => {
   const [charts, setCharts] = useState<RateChartStorage | null>(null);
   const [activeMilkType, setActiveMilkType] = useState<MilkType>("cow");
   const [saving, setSaving] = useState(false);
-
-  // Preview calculator
-  // const [previewFat, setPreviewFat] = useState<string>("4.0");
-  // const [previewSnf, setPreviewSnf] = useState<string>("8.5");
 
   // Confirm reset
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -255,24 +239,6 @@ const RateChartPage: React.FC = () => {
         avg: round2(flatRates.reduce((s, v) => s + v, 0) / flatRates.length),
       }
     : { min: 0, max: 0, avg: 0 };
-
-  // Preview calculation
-  // const fatVal = parseFloat(previewFat);
-  // const snfVal = parseFloat(previewSnf);
-  // const hasPreviewValues = !Number.isNaN(fatVal) && !Number.isNaN(snfVal);
-
-  // const previewFormulaRate =
-  //   hasPreviewValues &&
-  //   formulaRate(
-  //     current.baseRate,
-  //     current.fatFactor,
-  //     current.snfFactor,
-  //     fatVal,
-  //     snfVal,
-  //   );
-
-  // const previewMatrixRate =
-  //   hasPreviewValues && findMatrixRate(current, fatVal, snfVal);
 
   const lastUpdatedLabel = current.updatedAt
     ? new Date(current.updatedAt).toLocaleString()

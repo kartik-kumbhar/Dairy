@@ -5,6 +5,11 @@ import InputField from "../../components/inputField";
 import { getInventoryItems } from "../../axios/inventory_api";
 import type { InventoryItem } from "../../types/inventory";
 import ReportSwitcher from "../../components/ReportSwitcher";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import toast from "react-hot-toast";
 
 type Mode = "Daily" | "Monthly";
 
@@ -103,6 +108,54 @@ const InventoryReportPage: React.FC = () => {
     },
   ];
 
+  //Export Excel
+  const formatRows = () =>
+    filteredItems.map((i) => ({
+      Code: i.code,
+      Name: i.name,
+      Category: i.category,
+      Stock: `${(i.currentStock ?? 0).toFixed(2)} ${i.unit}`,
+      StockValue:
+        i.purchaseRate != null
+          ? ((i.currentStock ?? 0) * i.purchaseRate).toFixed(2)
+          : "-",
+    }));
+
+  const exportExcel = () => {
+    if (!filteredItems.length) return toast.error("No records to export");
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows());
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory Report");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "Inventory-Report.xlsx");
+  };
+
+  //Export PDF
+  const exportPDF = () => {
+    if (!filteredItems.length) return toast.error("No records to export");
+
+    const doc = new jsPDF();
+    doc.text("Inventory Report", 14, 10);
+
+    autoTable(doc, {
+      head: [["Code", "Name", "Category", "Stock", "Stock Value"]],
+      body: filteredItems.map((i) => [
+        i.code,
+        i.name,
+        i.category,
+        `${(i.currentStock ?? 0).toFixed(2)} ${i.unit}`,
+        i.purchaseRate != null
+          ? `₹ ${((i.currentStock ?? 0) * i.purchaseRate).toFixed(2)}`
+          : "-",
+      ]),
+      startY: 20,
+    });
+
+    doc.save("Inventory-Report.pdf");
+  };
+
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -196,7 +249,25 @@ const InventoryReportPage: React.FC = () => {
               ? "No inventory updates found for selected date."
               : "No inventory updates found for selected month."
           }
+          
         />
+        <div className="mt-0 flex justify-end gap-2">
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-excel"></i>
+            Excel
+          </button>
+
+          <button
+            onClick={exportPDF}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-pdf"></i>
+            PDF
+          </button>
+        </div>
       </div>
     </div>
   );

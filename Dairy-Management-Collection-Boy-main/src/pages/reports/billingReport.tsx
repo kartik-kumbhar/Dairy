@@ -4,6 +4,11 @@ import DataTable, { type DataTableColumn } from "../../components/dataTable";
 import ReportSwitcher from "../../components/ReportSwitcher";
 import { getMonthlyBillingReport } from "../../axios/report_api";
 import type { MonthlyBillingReportResponse } from "../../axios/report_api";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import toast from "react-hot-toast";
 
 const BillingReportPage: React.FC = () => {
   const today = new Date();
@@ -89,6 +94,56 @@ const BillingReportPage: React.FC = () => {
     },
   ];
 
+  // Export
+  const formatRows = () =>
+    (report?.rows ?? []).map((r) => ({
+      Farmer: typeof r.farmerId === "object" ? r.farmerId.name : "—",
+      Liters: r.totalLiters.toFixed(2),
+      MilkAmount: r.totalMilkAmount.toFixed(2),
+      Deduction: r.totalDeduction.toFixed(2),
+      Bonus: r.totalBonus.toFixed(2),
+      NetPayable: r.netPayable.toFixed(2),
+      Status: r.status,
+    }));
+
+  //Export Excel
+  const exportExcel = () => {
+    if (!report?.rows?.length) return toast.error("No billing records");
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows());
+    XLSX.utils.book_append_sheet(wb, ws, "Billing Report");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), `Billing-Report-${month}.xlsx`);
+  };
+
+  //Export PDF
+  const exportPDF = () => {
+    if (!report?.rows?.length) return toast.error("No billing records");
+
+    const doc = new jsPDF();
+    doc.text(`Billing Report - ${month}`, 14, 10);
+
+    autoTable(doc, {
+      head: [
+        ["Farmer", "Liters", "Milk", "Deduction", "Bonus", "Net", "Status"],
+      ],
+      body: report.rows.map((r) => [
+        typeof r.farmerId === "object" ? r.farmerId.name : "—",
+        r.totalLiters.toFixed(2),
+        `₹ ${r.totalMilkAmount.toFixed(2)}`,
+        `₹ ${r.totalDeduction.toFixed(2)}`,
+        `₹ ${r.totalBonus.toFixed(2)}`,
+        `₹ ${r.netPayable.toFixed(2)}`,
+        r.status,
+      ]),
+      startY: 20,
+    });
+
+    doc.save(`Billing-Report-${month}.pdf`);
+  };
+
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       <div className="mx-auto max-w-6xl flex flex-col gap-6">
@@ -137,6 +192,23 @@ const BillingReportPage: React.FC = () => {
             emptyMessage="No bills for this month"
           />
         )}
+        <div className="mt-0 flex justify-end gap-2">
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-excel"></i>
+            Excel
+          </button>
+
+          <button
+            onClick={exportPDF}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-pdf"></i>
+            PDF
+          </button>
+        </div>
       </div>
     </div>
   );
