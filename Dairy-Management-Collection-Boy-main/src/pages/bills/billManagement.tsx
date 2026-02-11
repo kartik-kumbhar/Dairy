@@ -8,6 +8,8 @@ import DataTable, { type DataTableColumn } from "../../components/dataTable";
 import StatCard from "../../components/statCard";
 import ConfirmModal from "../../components/confirmModal";
 import Loader from "../../components/loader";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import type { Farmer } from "../../types/farmer";
 import type { Bill, BillStatus } from "../../types/bills";
@@ -31,13 +33,6 @@ interface CalculatedBillRow {
 }
 
 const BillManagementPage: React.FC = () => {
-  // const today = useMemo(() => new Date(), []);
-  // const todayISO = useMemo(() => today.toISOString().slice(0, 10), [today]);
-  // const firstOfMonthISO = useMemo(() => {
-  //   const d = new Date(today.getFullYear(), today.getMonth(), 1);
-  //   return d.toISOString().slice(0, 10);
-  // }, [today]);
-
   const today = new Date();
 
   const todayISO = `${today.getFullYear()}-${String(
@@ -235,7 +230,7 @@ const BillManagementPage: React.FC = () => {
         }
       }
 
-      toast.success(`Bills generated: ${success}`);//\nAlready existed: ${skipped}
+      toast.success(`Bills generated: ${success}`); //\nAlready existed: ${skipped}
 
       await loadBills();
       setCalculatedRows([]);
@@ -268,7 +263,7 @@ const BillManagementPage: React.FC = () => {
   const markAsPaid = async (bill: Bill) => {
     try {
       await api.put(`/bills/${bill._id}/pay`);
-        toast.success("Bill marked as Paid");
+      toast.success("Bill marked as Paid");
 
       await loadBills(); //  refresh table + stats
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -422,6 +417,80 @@ const BillManagementPage: React.FC = () => {
     value: f._id,
   }));
 
+  // Export PDF
+  const exportSingleBillPDF = () => {
+    if (scope !== "Single" || calculatedRows.length !== 1) {
+      toast.error("PDF available only for single farmer bill.");
+      return;
+    }
+
+    const row = calculatedRows[0];
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text("Milk Bill", 14, 15);
+
+    doc.setFontSize(11);
+    doc.text(`Farmer: ${row.farmerName}`, 14, 25);
+    doc.text(`Code: ${row.farmerCode}`, 14, 32);
+    doc.text(`Period: ${periodFrom} to ${periodTo}`, 14, 39);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["Description", "Amount (₹)"]],
+      body: [
+        ["Total Liters", row.liters.toFixed(2)],
+        ["Milk Amount", row.milkAmount.toFixed(2)],
+        ["Bonus", row.bonusAmount.toFixed(2)],
+        ["Deduction", row.deductionAmount.toFixed(2)],
+        ["Net Payable", row.netAmount.toFixed(2)],
+      ],
+    });
+
+    doc.save(`Bill-${row.farmerCode}-${periodFrom.slice(0, 7)}.pdf`);
+
+    toast.success("PDF generated successfully");
+  };
+
+  // WhatsApp
+  const sendBillViaWhatsApp = () => {
+    if (scope !== "Single" || calculatedRows.length !== 1) {
+      toast.error("WhatsApp available only for single farmer bill.");
+      return;
+    }
+
+    if (!selectedFarmer?.mobile) {
+      toast.error("Farmer mobile number not found.");
+      return;
+    }
+
+    const row = calculatedRows[0];
+
+    const message = `
+🧾 *Milk Bill*
+
+👤 Farmer: ${row.farmerName}
+🆔 Code: ${row.farmerCode}
+📅 Period: ${periodFrom} to ${periodTo}
+
+🥛 Total Liters: ${row.liters.toFixed(2)}
+💰 Milk Amount: ₹ ${row.milkAmount.toFixed(2)}
+🎁 Bonus: ₹ ${row.bonusAmount.toFixed(2)}
+➖ Deduction: ₹ ${row.deductionAmount.toFixed(2)}
+
+✅ *Net Payable: ₹ ${row.netAmount.toFixed(2)}*
+
+Thank you.
+`;
+
+    const phone = selectedFarmer.mobile.replace(/\D/g, "");
+    const whatsappURL = `https://wa.me/91${phone}?text=${encodeURIComponent(
+      message,
+    )}`;
+
+    window.open(whatsappURL, "_blank");
+  };
+
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -491,13 +560,6 @@ const BillManagementPage: React.FC = () => {
               </div>
             </div>
 
-            {/* <InputField
-              label="Period From"
-              type="date"
-              value={periodFrom}
-              onChange={(e) => setPeriodFrom(e.target.value)}
-              requiredLabel
-            /> */}
             <InputField
               label="Period From"
               type="date"
@@ -574,7 +636,7 @@ const BillManagementPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end gap-3">
+                {/* <div className="mt-4 flex items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setCalculatedRows([])}
@@ -582,6 +644,44 @@ const BillManagementPage: React.FC = () => {
                   >
                     Clear Preview
                   </button>
+                  <button
+                    type="button"
+                    onClick={generateBills}
+                    disabled={savingBills}
+                    className="rounded-md bg-[#2A9D8F] px-5 py-2 text-sm font-medium text-white shadow hover:bg-[#247B71] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {savingBills ? "Generating..." : "Generate Bills"}
+                  </button>
+                </div> */}
+                <div className="mt-4 flex items-center justify-end gap-3">
+                  {/* WHATSAPP BUTTON */}
+                  {scope === "Single" && calculatedRows.length === 1 && (
+                    <button
+                      type="button"
+                      onClick={sendBillViaWhatsApp}
+                      className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+                    >
+                      <i className="fa-brands fa-whatsapp"></i> WhatsApp
+                    </button>
+                  )}
+                  {/* PDF BUTTON — ONLY FOR SINGLE FARMER */}
+                  {scope === "Single" && calculatedRows.length === 1 && (
+                    <button
+                      type="button"
+                      onClick={exportSingleBillPDF}
+                      className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+                    >
+                      <i className="fa-solid fa-file-pdf"></i> PDF
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCalculatedRows([])}
+                    className="rounded-md border border-[#E9E2C8] bg-white px-4 py-2 text-sm text-[#5E503F] hover:bg-[#F8F4E3]"
+                  >
+                    Clear Preview
+                  </button>
+
                   <button
                     type="button"
                     onClick={generateBills}
