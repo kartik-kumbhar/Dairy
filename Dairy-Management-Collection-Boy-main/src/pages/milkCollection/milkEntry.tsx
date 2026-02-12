@@ -248,32 +248,26 @@ const MilkEntryPage: React.FC = () => {
   const CONTAINER_CAPACITY = 40;
 
   const generateContainers = (liters: number) => {
-    const containers: number[] = [];
-
     const full = Math.floor(liters / CONTAINER_CAPACITY);
-    const remaining = liters % CONTAINER_CAPACITY;
+    const remaining = +(liters % CONTAINER_CAPACITY).toFixed(1);
 
-    for (let i = 0; i < full; i++) {
-      containers.push(CONTAINER_CAPACITY);
-    }
-
-    if (remaining > 0) {
-      containers.push(remaining);
-    }
-
-    //  IMPORTANT: If no milk at all → show 1 empty container
-    if (containers.length === 0) {
-      containers.push(0);
-    }
-
-    return containers;
+    return {
+      fullCount: full,
+      runningLiters: remaining,
+      isEmpty: liters === 0,
+    };
   };
 
-  const cowMorningContainers = generateContainers(totals.cow.Morning);
-  const cowEveningContainers = generateContainers(totals.cow.Evening);
+  // const cowMorningContainers = generateContainers(totals.cow.Morning);
+  // const cowEveningContainers = generateContainers(totals.cow.Evening);
 
-  const buffaloMorningContainers = generateContainers(totals.buffalo.Morning);
-  const buffaloEveningContainers = generateContainers(totals.buffalo.Evening);
+  // const buffaloMorningContainers = generateContainers(totals.buffalo.Morning);
+  // const buffaloEveningContainers = generateContainers(totals.buffalo.Evening);
+
+  const cowMorning = generateContainers(totals.cow.Morning);
+  const cowEvening = generateContainers(totals.cow.Evening);
+  const buffaloMorning = generateContainers(totals.buffalo.Morning);
+  const buffaloEvening = generateContainers(totals.buffalo.Evening);
 
   // ---------- UI derived ----------
   const farmerCode = selectedFarmer?.code ?? "";
@@ -484,7 +478,169 @@ const MilkEntryPage: React.FC = () => {
           )}
         </div>
 
-               {/* List + Filters */}
+        {/* Milk Containers Visualization */}
+        <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+          <h2 className="mb-5 text-sm font-semibold text-[#5E503F]">
+            Milk Can Platform (40L each)
+          </h2>
+
+          <div className="overflow-x-auto">
+            <div className="flex min-w-max">
+              {/* Cow Morning */}
+              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#E76F51]">
+                  🐄 Cow Morning
+                </div>
+
+                {/* Full count badge */}
+
+                <div className="flex items-end gap-6 min-h-[150px]">
+                  {/* FULL CAN */}
+                  {cowMorning.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#E76F51"
+                      label={`${cowMorning.fullCount} cans`}
+                    />
+                  )}
+
+                  {/* RUNNING CAN */}
+                  {cowMorning.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={cowMorning.runningLiters}
+                      color="#E76F51"
+                      label={`${cowMorning.runningLiters} L`}
+                    />
+                  )}
+
+                  {/* EMPTY */}
+                  {cowMorning.fullCount === 0 &&
+                    cowMorning.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#E76F51"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+
+              {/* Cow Evening */}
+              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#F4A261]">
+                  🐄 Cow Evening
+                </div>
+
+                {/* Full count badge */}
+                <div className="flex items-end gap-6 min-h-[150px]">
+                  {cowEvening.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#F4A261"
+                      label={`${cowEvening.fullCount} cans`}
+                    />
+                  )}
+
+                  {cowEvening.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={cowEvening.runningLiters}
+                      color="#F4A261"
+                      label={`${cowEvening.runningLiters} L`}
+                    />
+                  )}
+
+                  {cowEvening.fullCount === 0 &&
+                    cowEvening.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#F4A261"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+
+              {/* Buffalo Morning */}
+              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#457B9D]">
+                  🐃 Buffalo Morning
+                </div>
+
+                <div className="flex items-end gap-6 min-h-[150px]">
+                  {buffaloMorning.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#457B9D"
+                      label={`${buffaloMorning.fullCount} cans`}
+                    />
+                  )}
+
+                  {buffaloMorning.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={buffaloMorning.runningLiters}
+                      color="#457B9D"
+                      label={`${buffaloMorning.runningLiters} L`}
+                    />
+                  )}
+
+                  {buffaloMorning.fullCount === 0 &&
+                    buffaloMorning.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#457B9D"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+
+              {/* Buffalo Evening */}
+              <div className="flex flex-col items-center px-6 min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#1D3557]">
+                  🐃 Buffalo Evening
+                </div>
+
+                {/* Full count badge */}
+                <div className="flex items-end gap-6 min-h-[150px]">
+                  {buffaloEvening.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#1D3557"
+                      label={`${buffaloEvening.fullCount} cans`}
+                    />
+                  )}
+
+                  {buffaloEvening.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={buffaloEvening.runningLiters}
+                      color="#1D3557"
+                      label={`${buffaloEvening.runningLiters} L`}
+                    />
+                  )}
+
+                  {buffaloEvening.fullCount === 0 &&
+                    buffaloEvening.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#1D3557"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* List + Filters */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center gap-4">
             <h2 className="text-sm font-semibold text-[#5E503F]">
@@ -663,113 +819,6 @@ const MilkEntryPage: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-          
-        </div>
-         {/* Milk Containers Visualization */}
-        <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm mt-0">
-          <h2 className="mb-4 text-sm font-semibold text-[#5E503F]">
-            Milk Container Status (40L each)
-          </h2>
-
-          <div className="space-y-8">
-            {/* 🐄 Cow Section */}
-            <div>
-              <h3 className="mb-3 text-sm font-semibold text-[#E76F51]">
-                🐄 Cow Milk
-              </h3>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Morning */}
-                <div>
-                  <p className="mb-2 text-xs font-medium text-gray-600">
-                    🌅 Morning
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {cowMorningContainers.map((liters, i) => (
-                      <MilkContainer
-                        key={`cow-m-${i}`}
-                        filledLiters={liters}
-                        color="#E76F51"
-                        label={`${i + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Evening */}
-                <div>
-                  <p className="mb-2 text-xs font-medium text-gray-600">
-                    🌇 Evening
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {cowEveningContainers.length === 0 ? (
-                      <p className="text-xs text-gray-400">No collection</p>
-                    ) : (
-                      cowEveningContainers.map((liters, i) => (
-                        <MilkContainer
-                          key={`cow-e-${i}`}
-                          filledLiters={liters}
-                          color="#E76F51"
-                          label={`${i + 1}`}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 🐃 Buffalo Section */}
-            <div>
-              <h3 className="mb-3 text-sm font-semibold text-[#457B9D]">
-                🐃 Buffalo Milk
-              </h3>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Morning */}
-                <div>
-                  <p className="mb-2 text-xs font-medium text-gray-600">
-                    🌅 Morning
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {buffaloMorningContainers.length === 0 ? (
-                      <p className="text-xs text-gray-400">No collection</p>
-                    ) : (
-                      buffaloMorningContainers.map((liters, i) => (
-                        <MilkContainer
-                          key={`buffalo-m-${i}`}
-                          filledLiters={liters}
-                          color="#457B9D"
-                          label={`${i + 1}`}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Evening */}
-                <div>
-                  <p className="mb-2 text-xs font-medium text-gray-600">
-                    🌇 Evening
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {buffaloEveningContainers.length === 0 ? (
-                      <p className="text-xs text-gray-400">No collection</p>
-                    ) : (
-                      buffaloEveningContainers.map((liters, i) => (
-                        <MilkContainer
-                          key={`buffalo-e-${i}`}
-                          filledLiters={liters}
-                          color="#457B9D"
-                          label={`${i + 1}`}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

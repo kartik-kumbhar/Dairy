@@ -16,6 +16,14 @@ const rateChartSchema = new mongoose.Schema(
       type: [Number],
       required: true,
     },
+    fatMin: { type: Number, required: true },
+    fatMax: { type: Number, required: true },
+    fatStep: { type: Number, required: true },
+
+    snfMin: { type: Number, required: true },
+    snfMax: { type: Number, required: true },
+    snfStep: { type: Number, required: true },
+
     rates: {
       type: [[Number]],
       required: true,

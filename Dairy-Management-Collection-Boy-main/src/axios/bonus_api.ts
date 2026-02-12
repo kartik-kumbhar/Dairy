@@ -16,5 +16,5 @@ export const deleteBonus = (id: string) =>
 export const previewBonus = (data: {
   periodFrom: string;
   periodTo: string;
-  rule: { type: string; value: number };
+  rule: { type: string; value: number; perAmount?: number };
 }) => api.post("/bonus/preview", data);

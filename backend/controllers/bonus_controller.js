@@ -40,14 +40,22 @@ export const previewBonus = async (req, res) => {
     });
 
     const rows = Object.values(map).map((r) => {
-      const bonus =
-        rule.type === "Percentage"
-          ? (r.amount * Number(rule.value)) / 100
-          : Number(rule.value);
+      let bonus = 0;
+
+      if (rule.type === "Percentage") {
+        bonus = (r.amount * Number(rule.value)) / 100;
+      } else if (rule.type === "Fixed") {
+        bonus = Number(rule.value);
+      } else if (rule.type === "PerAmount") {
+        bonus =
+          Math.floor(r.amount / Number(rule.perAmount)) * Number(rule.value);
+      } else if (rule.type === "PerLiter") {
+        bonus = r.liters * Number(rule.value);
+      }
 
       return {
         ...r,
-        bonus: Math.round(bonus * 100) / 100, // round to 2 decimals
+        bonus: Math.round(bonus * 100) / 100,
       };
     });
 
@@ -57,7 +65,6 @@ export const previewBonus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const addBonus = async (req, res) => {
   try {

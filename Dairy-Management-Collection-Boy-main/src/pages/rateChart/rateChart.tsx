@@ -1,6 +1,7 @@
 // src/pages/rateChart/rateChart.tsx
 import React, { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 import InputField from "../../components/inputField";
 import StatCard from "../../components/statCard";
@@ -29,8 +30,8 @@ type RateChartStorage = {
 };
 
 // Default FAT and SNF steps used to build the matrix
-const DEFAULT_FATS = [3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0];
-const DEFAULT_SNFS = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5];
+// const DEFAULT_FATS = [3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0];
+// const DEFAULT_SNFS = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5];
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -61,27 +62,59 @@ function generateMatrix(
 
 function defaultChart(milkType: MilkType): MilkRateChart {
   const now = new Date().toISOString();
-  const today = now.slice(0, 10); // YYYY-MM-DD
+  const today = now.slice(0, 10);
 
   const baseRate = milkType === "cow" ? 20 : 30;
   const fatFactor = milkType === "cow" ? 4 : 5;
   const snfFactor = 1;
 
-  const baseConfig = {
+  // ✅ Default Ranges
+  const fatMin = 3.0;
+  const fatMax = 6.0;
+  const fatStep = 0.5;
+
+  const snfMin = 7.0;
+  const snfMax = 9.5;
+  const snfStep = 0.5;
+
+  const fats = generateRange(fatMin, fatMax, fatStep);
+  const snfs = generateRange(snfMin, snfMax, snfStep);
+
+  const rates = fats.map((fat) =>
+    snfs.map((snf) => round2(baseRate + fat * fatFactor + snf * snfFactor)),
+  );
+
+  return {
     milkType,
-    fats: DEFAULT_FATS,
-    snfs: DEFAULT_SNFS,
+
+    // ADD THESE
+    fatMin,
+    fatMax,
+    fatStep,
+
+    snfMin,
+    snfMax,
+    snfStep,
+
+    fats,
+    snfs,
+    rates,
+
     baseRate,
     fatFactor,
     snfFactor,
-  };
 
-  return {
-    ...baseConfig,
-    rates: generateMatrix(baseConfig),
-    effectiveFrom: today, // ✅ REQUIRED
+    effectiveFrom: today,
     updatedAt: now,
   };
+}
+
+function generateRange(min: number, max: number, step: number): number[] {
+  const arr: number[] = [];
+  for (let v = min; v <= max; v += step) {
+    arr.push(Number(v.toFixed(2)));
+  }
+  return arr;
 }
 
 const RateChartPage: React.FC = () => {
@@ -103,6 +136,15 @@ const RateChartPage: React.FC = () => {
         const cowChart = res.data.cow
           ? {
               ...res.data.cow,
+
+              fatMin: res.data.cow.fatMin ?? 3.0,
+              fatMax: res.data.cow.fatMax ?? 6.0,
+              fatStep: res.data.cow.fatStep ?? 0.5,
+
+              snfMin: res.data.cow.snfMin ?? 7.0,
+              snfMax: res.data.cow.snfMax ?? 9.5,
+              snfStep: res.data.cow.snfStep ?? 0.5,
+
               effectiveFrom:
                 res.data.cow.effectiveFrom ??
                 new Date().toISOString().slice(0, 10),
@@ -112,6 +154,15 @@ const RateChartPage: React.FC = () => {
         const buffaloChart = res.data.buffalo
           ? {
               ...res.data.buffalo,
+
+              fatMin: res.data.buffalo.fatMin ?? 3.0,
+              fatMax: res.data.buffalo.fatMax ?? 6.0,
+              fatStep: res.data.buffalo.fatStep ?? 0.5,
+
+              snfMin: res.data.buffalo.snfMin ?? 7.0,
+              snfMax: res.data.buffalo.snfMax ?? 9.5,
+              snfStep: res.data.buffalo.snfStep ?? 0.5,
+
               effectiveFrom:
                 res.data.buffalo.effectiveFrom ??
                 new Date().toISOString().slice(0, 10),
@@ -165,18 +216,49 @@ const RateChartPage: React.FC = () => {
   };
 
   const regenerateFromFormula = () => {
-    const baseConfig = {
-      fats: current.fats,
-      snfs: current.snfs,
+    if (current.fatMin >= current.fatMax) {
+      toast.error("FAT Min must be less than Max");
+      return;
+    }
+
+    if (current.snfMin >= current.snfMax) {
+      toast.error("SNF Min must be less than Max");
+      return;
+    }
+
+    if (current.fatStep <= 0 || current.snfStep <= 0) {
+      toast.error("Step must be greater than 0");
+      return;
+    }
+
+    // ✅ Performance protection
+    const fatCount =
+      Math.floor((current.fatMax - current.fatMin) / current.fatStep) + 1;
+
+    const snfCount =
+      Math.floor((current.snfMax - current.snfMin) / current.snfStep) + 1;
+
+    if (fatCount * snfCount > 500) {
+      toast.error("Range too large. Reduce rows/columns.");
+      return;
+    }
+    const fats = generateRange(current.fatMin, current.fatMax, current.fatStep);
+
+    const snfs = generateRange(current.snfMin, current.snfMax, current.snfStep);
+
+    const rates = generateMatrix({
+      fats,
+      snfs,
       baseRate: current.baseRate,
       fatFactor: current.fatFactor,
       snfFactor: current.snfFactor,
-    };
-    const matrix = generateMatrix(baseConfig);
+    });
+
     setCurrent({
       ...current,
-      rates: matrix,
-      effectiveFrom: current.effectiveFrom,
+      fats,
+      snfs,
+      rates,
       updatedAt: new Date().toISOString(),
     });
   };
@@ -249,6 +331,44 @@ const RateChartPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  // Export Excel
+  const exportExcel = () => {
+    if (!current.fats.length || !current.snfs.length) {
+      toast.error("No rate chart data to export");
+      return;
+    }
+
+    // ✅ Export in flat row format (FAT | SNF | Rate)
+    const rows: { FAT: number; SNF: number; Rate: number }[] = [];
+
+    current.fats.forEach((fat, fi) => {
+      current.snfs.forEach((snf, si) => {
+        rows.push({
+          FAT: fat,
+          SNF: snf,
+          Rate: current.rates[fi][si],
+        });
+      });
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    XLSX.utils.book_append_sheet(wb, ws, "Rate Chart");
+
+    const buffer = XLSX.write(wb, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    saveAs(
+      new Blob([buffer]),
+      `Rate-Chart-${activeMilkType}-${current.effectiveFrom}.xlsx`,
+    );
+
+    toast.success("Rate chart exported successfully");
+  };
+
   const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (
     e,
   ) => {
@@ -307,6 +427,15 @@ const RateChartPage: React.FC = () => {
 
       const updatedChart: MilkRateChart = {
         ...current,
+
+        fatMin: Math.min(...fats),
+        fatMax: Math.max(...fats),
+        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.5,
+
+        snfMin: Math.min(...snfs),
+        snfMax: Math.max(...snfs),
+        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.5,
+
         fats,
         snfs,
         rates,
@@ -367,9 +496,9 @@ const RateChartPage: React.FC = () => {
             <button
               type="button"
               onClick={handleImportClick}
-              className="rounded-md border border-[#E9E2C8] bg-white px-3 py-1.5 text-xs font-medium text-[#5E503F] hover:bg-[#F8F4E3]"
+              className="rounded-md border border-[#E9E2C8] bg-green-600 text-white px-3 py-1.5 text-xs font-medium "
             >
-              Import from Excel
+              <i className="fa-solid fa-file-excel"></i> Import Excel
             </button>
             <span>Last updated: {lastUpdatedLabel}</span>
           </div>
@@ -411,6 +540,8 @@ const RateChartPage: React.FC = () => {
           />
         </div>
 
+        {/* Range FAT */}
+
         {/* Formula + preview */}
         <div className="grid gap-4 lg:grid-cols-1">
           {/* Formula card */}
@@ -428,6 +559,30 @@ const RateChartPage: React.FC = () => {
                   handleFormulaChange("baseRate", e.target.value)
                 }
               />
+            </div>
+            <h3 className="text-xs font-semibold text-[#5E503F] mt-4">
+              FAT Range
+            </h3>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <InputField
+                label="Min"
+                type="number"
+                step="0.1"
+                value={String(current.fatMin)}
+                onChange={(e) =>
+                  setCurrent({ ...current, fatMin: Number(e.target.value) })
+                }
+              />
+              <InputField
+                label="Max"
+                type="number"
+                step="0.1"
+                value={String(current.fatMax)}
+                onChange={(e) =>
+                  setCurrent({ ...current, fatMax: Number(e.target.value) })
+                }
+              />
               <InputField
                 label="FAT Factor"
                 type="number"
@@ -435,6 +590,32 @@ const RateChartPage: React.FC = () => {
                 value={String(current.fatFactor)}
                 onChange={(e) =>
                   handleFormulaChange("fatFactor", e.target.value)
+                }
+              />
+            </div>
+
+            {/* Range SNF */}
+            <h3 className="text-xs font-semibold text-[#5E503F] mt-4">
+              SNF Range
+            </h3>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <InputField
+                label="Min"
+                type="number"
+                step="0.1"
+                value={String(current.snfMin)}
+                onChange={(e) =>
+                  setCurrent({ ...current, snfMin: Number(e.target.value) })
+                }
+              />
+              <InputField
+                label="Max"
+                type="number"
+                step="0.1"
+                value={String(current.snfMax)}
+                onChange={(e) =>
+                  setCurrent({ ...current, snfMax: Number(e.target.value) })
                 }
               />
               <InputField
@@ -468,56 +649,6 @@ const RateChartPage: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {/* Preview card */}
-          {/* <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-[#5E503F]">
-              Rate Preview (FAT / SNF)
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InputField
-                label="FAT %"
-                type="number"
-                step="0.1"
-                value={previewFat}
-                onChange={(e) => setPreviewFat(e.target.value)}
-              />
-              <InputField
-                label="SNF %"
-                type="number"
-                step="0.1"
-                value={previewSnf}
-                onChange={(e) => setPreviewSnf(e.target.value)}
-              />
-            </div>
-            {hasPreviewValues ? (
-              <div className="mt-4 space-y-1 text-sm text-[#5E503F]">
-                <div>
-                  Formula Rate:{" "}
-                  <span className="font-semibold text-[#2A9D8F]">
-                    ₹{" "}
-                    {typeof previewFormulaRate === "number"
-                      ? previewFormulaRate.toFixed(2)
-                      : "—"}
-                  </span>
-                </div>
-                <div className="text-xs text-[#5E503F]/70">
-                  Cell Rate (if exact FAT &amp; SNF exist in table):{" "}
-                  {typeof previewMatrixRate === "number" ? (
-                    <span className="font-semibold text-[#5E503F]">
-                      ₹ {previewMatrixRate.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span>— (no exact cell)</span>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-[#5E503F]/60">
-                Enter valid FAT and SNF values to see preview.
-              </p>
-            )}
-          </div> */}
         </div>
 
         {/* Matrix editor */}
@@ -579,8 +710,17 @@ const RateChartPage: React.FC = () => {
             </table>
           </div>
 
-          {/* Save button */}
-          <div className="mt-4 flex items-center justify-end gap-3">
+          {/* Export Button */}
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              onClick={exportExcel}
+              className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+            >
+              <i className="fa-solid fa-file-excel"></i>
+              Export Excel
+            </button>
+
+            {/* Save button */}
             <button
               type="button"
               onClick={handleSave}

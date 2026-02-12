@@ -1,6 +1,6 @@
 // src/layout/sidebar.tsx
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 type MenuItem = {
   label: string;
@@ -8,6 +8,10 @@ type MenuItem = {
   icon: React.ReactNode;
 };
 
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 const DashboardIcon = () => (
   <svg
     className="h-5 w-5"
@@ -144,13 +148,22 @@ const ReportsIcon = () => (
   </svg>
 );
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [dateTime, setDateTime] = useState(new Date());
 
   useEffect(() => {
     const id = setInterval(() => setDateTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      onClose();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const formatDate = (d: Date) =>
     d.toLocaleDateString("en-GB", {
@@ -181,7 +194,15 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="flex h-full min-h-screen w-60 flex-col bg-[#2A9D8F] text-white shadow-lg">
+    <aside
+      className={`
+    fixed lg:relative z-40 flex flex-col h-full w-60 
+    bg-[#2A9D8F] text-white shadow-lg
+    transform transition-transform duration-300 ease-in-out
+    ${isOpen ? "translate-x-0" : "-translate-x-full"}
+    lg:translate-x-0
+  `}
+    >
       {/* Brand */}
       <div className="border-b border-[#247B71] px-4 py-4">
         <div className="flex items-center gap-3">
@@ -189,12 +210,8 @@ const Sidebar: React.FC = () => {
             🥛
           </div>
           <div>
-            <div className="text-base font-bold leading-tight">
-              My Dairy
-            </div>
-            <div className="text-xs text-white/80">
-              Gokul Dairy Farm
-            </div>
+            <div className="text-base font-bold leading-tight">My Dairy</div>
+            <div className="text-xs text-white/80">Gokul Dairy Farm</div>
           </div>
         </div>
       </div>
@@ -205,6 +222,11 @@ const Sidebar: React.FC = () => {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                onClose();
+              }
+            }}
             className={({ isActive }) =>
               [
                 "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4",

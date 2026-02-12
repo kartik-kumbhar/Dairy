@@ -17,7 +17,7 @@ const MilkContainer: React.FC<MilkContainerProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative h-16 w-8 rounded-b-2xl rounded-t-md border border-gray-400 overflow-hidden bg-white shadow-sm">
+      <div className="relative h-24 w-12 rounded-b-2xl rounded-t-md border border-gray-400 overflow-hidden bg-white shadow-sm">
         <div
           className="absolute bottom-0 left-0 w-full transition-all duration-500"
           style={{
@@ -27,10 +27,10 @@ const MilkContainer: React.FC<MilkContainerProps> = ({
         />
       </div>
 
-<div className="mt-1 text-[10px] font-medium text-[#5E503F] text-center">
+      <div className="mt-1 text-[10px] font-medium text-[#5E503F] text-center">
         {label}
       </div>
-<div className="text-[9px] text-gray-500">
+      <div className="text-[9px] text-gray-500">
         {filledLiters.toFixed(1)}L / {capacity}L
       </div>
     </div>

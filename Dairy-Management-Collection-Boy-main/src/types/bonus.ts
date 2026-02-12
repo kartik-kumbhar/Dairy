@@ -1,6 +1,7 @@
 // src/types/bonus.ts
 
-export type BonusType = "Percentage" | "Fixed";
+// export type BonusType = "Percentage" | "Fixed";
+export type BonusType = "Percentage" | "Fixed" | "PerAmount" | "PerLiter";
 
 export interface BonusRule {
   _id: string;
@@ -17,6 +18,7 @@ export interface BonusRule {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  perAmount?: number; 
 }
 
 export interface BonusPayment {
@@ -29,7 +31,7 @@ export interface BonusPayment {
   farmerName: string;
 
   periodFrom: string; // YYYY-MM-DD
-  periodTo: string;   // YYYY-MM-DD
+  periodTo: string; // YYYY-MM-DD
 
   totalLiters: number;
   totalAmount: number;

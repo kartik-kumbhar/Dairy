@@ -492,12 +492,12 @@ Thank you.
   };
 
   return (
-    <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="h-full w-full overflow-auto bg-[#F8F4E3] px-3 py-4 sm:p-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 sm:gap-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-[#5E503F]">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#5E503F]">
               Bill Management
             </h1>
             <p className="text-sm text-[#5E503F]/70">
@@ -507,7 +507,7 @@ Thank you.
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             title="Total Bills"
             value={billStats.totalBills}
@@ -537,7 +537,7 @@ Thank you.
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div>
               <div className="text-xs font-medium text-[#5E503F]">
                 Bill Scope
@@ -589,7 +589,7 @@ Thank you.
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="text-xs text-[#5E503F]/60">
               Preview is basic. Actual bill calculation is done by backend.
             </div>
@@ -615,13 +615,18 @@ Thank you.
               </div>
             ) : (
               <>
-                <DataTable
-                  data={calculatedRows}
-                  columns={previewColumns}
-                  keyField="farmerId"
-                  striped
-                  dense
-                />
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-[720px]">
+                    <DataTable
+                      data={calculatedRows}
+                      columns={previewColumns}
+                      keyField="farmerId"
+                      striped
+                      dense
+                    />
+                  </div>
+                </div>
+
                 {/* ////////////////////////////////////////// */}
                 <div className="mb-3 flex items-center justify-between">
                   <div className="text-xs text-[#5E503F]/70">
@@ -636,30 +641,13 @@ Thank you.
                   </div>
                 </div>
 
-                {/* <div className="mt-4 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCalculatedRows([])}
-                    className="rounded-md border border-[#E9E2C8] bg-white px-4 py-2 text-sm text-[#5E503F] hover:bg-[#F8F4E3]"
-                  >
-                    Clear Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={generateBills}
-                    disabled={savingBills}
-                    className="rounded-md bg-[#2A9D8F] px-5 py-2 text-sm font-medium text-white shadow hover:bg-[#247B71] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {savingBills ? "Generating..." : "Generate Bills"}
-                  </button>
-                </div> */}
-                <div className="mt-4 flex items-center justify-end gap-3">
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
                   {/* WHATSAPP BUTTON */}
                   {scope === "Single" && calculatedRows.length === 1 && (
                     <button
                       type="button"
                       onClick={sendBillViaWhatsApp}
-                      className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
                     >
                       <i className="fa-brands fa-whatsapp"></i> WhatsApp
                     </button>
@@ -704,7 +692,7 @@ Thank you.
             </h2>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-4">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-end gap-3">
             <SelectField
               label="Status"
               value={billStatusFilter}
@@ -723,7 +711,7 @@ Thank you.
               containerClassName="w-40"
             />
 
-            <div className="ml-auto min-w-[220px] flex-1">
+            <div className="w-full sm:ml-auto sm:min-w-[220px] sm:flex-1">
               <InputField
                 label="Search"
                 placeholder="Bill no / farmer / code"
@@ -746,14 +734,18 @@ Thank you.
               <Loader size="md" message="Loading bills..." />
             </div>
           ) : (
-            <DataTable
-              data={filteredBills}
-              columns={billColumns}
-              keyField="_id"
-              striped
-              dense
-              emptyMessage="No bills found."
-            />
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[900px]">
+                <DataTable
+                  data={filteredBills}
+                  columns={billColumns}
+                  keyField="_id"
+                  striped
+                  dense
+                  emptyMessage="No bills found."
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

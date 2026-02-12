@@ -12,24 +12,74 @@ const generateRates = (baseRate, fatFactor, snfFactor) => {
   );
 };
 
+// const defaultRateChart = (milkType) => {
+//   const baseRate = milkType === "cow" ? 20 : 30;
+//   const fatFactor = milkType === "cow" ? 4 : 5;
+//   const snfFactor = 1;
+
+//   return {
+//     milkType,
+//     fats: DEFAULT_FATS,
+//     snfs: DEFAULT_SNFS,
+//     rates: generateRates(baseRate, fatFactor, snfFactor),
+//     baseRate,
+//     fatFactor,
+//     snfFactor,
+//     effectiveFrom: new Date().toISOString().slice(0, 10),
+//     updatedAt: new Date().toISOString(),
+//   };
+// };
+
 const defaultRateChart = (milkType) => {
   const baseRate = milkType === "cow" ? 20 : 30;
   const fatFactor = milkType === "cow" ? 4 : 5;
   const snfFactor = 1;
 
+  const fatMin = 3.0;
+  const fatMax = 6.0;
+  const fatStep = 0.5;
+
+  const snfMin = 7.0;
+  const snfMax = 9.5;
+  const snfStep = 0.5;
+
+  const fats = generateRange(fatMin, fatMax, fatStep);
+  const snfs = generateRange(snfMin, snfMax, snfStep);
+
   return {
     milkType,
-    fats: DEFAULT_FATS,
-    snfs: DEFAULT_SNFS,
-    rates: generateRates(baseRate, fatFactor, snfFactor),
+    fatMin,
+    fatMax,
+    fatStep,
+    snfMin,
+    snfMax,
+    snfStep,
+    fats,
+    snfs,
+    rates: generateRatesFromRange(baseRate, fatFactor, snfFactor, fats, snfs),
     baseRate,
     fatFactor,
     snfFactor,
-    effectiveFrom: new Date().toISOString().slice(0, 10), 
+    effectiveFrom: new Date().toISOString().slice(0, 10),
     updatedAt: new Date().toISOString(),
   };
 };
 
+const generateRange = (min, max, step) => {
+  const arr = [];
+  for (let v = min; v <= max; v += step) {
+    arr.push(+v.toFixed(2));
+  }
+  return arr;
+};
+
+const generateRatesFromRange = (baseRate, fatFactor, snfFactor, fats, snfs) => {
+  return fats.map((fat) =>
+    snfs.map(
+      (snf) => +(baseRate + fat * fatFactor + snf * snfFactor).toFixed(2),
+    ),
+  );
+};
 
 /**
  * GET /rate-chart
@@ -108,8 +158,6 @@ export const updateRateChart = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-
 
 export const getRateForMilk = async (req, res) => {
   try {

@@ -83,6 +83,7 @@ const BonusManagementPage: React.FC = () => {
     name?: string;
     value?: string;
   }>({});
+  const [rulePerAmount, setRulePerAmount] = useState<string>("");
 
   // Delete rule confirm
   const [deleteRuleTarget, setDeleteRuleTarget] = useState<BonusRule | null>(
@@ -173,6 +174,7 @@ const BonusManagementPage: React.FC = () => {
     setRuleActive(true);
     setRuleErrors({});
     setShowRuleModal(true);
+    setRulePerAmount("");
   };
 
   const openEditRule = (rule: BonusRule) => {
@@ -184,6 +186,7 @@ const BonusManagementPage: React.FC = () => {
     setRuleActive(rule.active);
     setRuleErrors({});
     setShowRuleModal(true);
+    setRulePerAmount(rule.perAmount ? String(rule.perAmount) : "");
   };
 
   const closeRuleModal = () => setShowRuleModal(false);
@@ -199,9 +202,19 @@ const BonusManagementPage: React.FC = () => {
       next.value = "Percentage cannot exceed 100.";
     }
 
+    if (ruleType === "PerAmount") {
+      const p = parseFloat(rulePerAmount);
+      if (Number.isNaN(p) || p <= 0) {
+        next.value = "Per Amount must be greater than 0.";
+      }
+    }
+
     setRuleErrors(next);
     return Object.keys(next).length === 0;
   };
+
+  const perAmt =
+    ruleType === "PerAmount" ? parseFloat(rulePerAmount) : undefined;
 
   const saveRule = () => {
     if (!validateRule()) return;
@@ -215,6 +228,8 @@ const BonusManagementPage: React.FC = () => {
         name: ruleName.trim(),
         type: ruleType,
         value: v,
+        perAmount: perAmt,
+
         description: ruleDescription.trim() || undefined,
         active: ruleActive,
         updatedAt: nowISO,
@@ -230,6 +245,7 @@ const BonusManagementPage: React.FC = () => {
         name: ruleName.trim(),
         type: ruleType,
         value: v,
+        perAmount: ruleType === "PerAmount" ? perAmt : undefined,
         description: ruleDescription.trim() || undefined,
         active: ruleActive,
         createdAt: nowISO,
@@ -285,6 +301,7 @@ const BonusManagementPage: React.FC = () => {
         rule: {
           type: selectedRule.type,
           value: selectedRule.value,
+          perAmount: selectedRule.perAmount,
         },
       });
 
@@ -341,25 +358,35 @@ const BonusManagementPage: React.FC = () => {
   };
 
   const bonusColumns: DataTableColumn<CalculatedBonusRow>[] = [
-    { id: "code", header: "Farmer Code", accessor: "farmerCode" },
-    { id: "name", header: "Farmer Name", accessor: "farmerName" },
+    {
+      id: "code",
+      header: "Farmer Code",
+      accessor: "farmerCode",
+      align: "center",
+    },
+    {
+      id: "name",
+      header: "Farmer Name",
+      accessor: "farmerName",
+      align: "center",
+    },
     {
       id: "liters",
       header: "Liters",
       cell: (row) => row.liters.toFixed(2),
-      align: "right",
+      align: "center",
     },
     {
       id: "amount",
       header: "Milk Amount",
       cell: (row) => `₹ ${row.amount.toFixed(2)}`,
-      align: "right",
+      align: "center",
     },
     {
       id: "bonus",
       header: "Bonus",
       cell: (row) => `₹ ${row.bonus.toFixed(2)}`,
-      align: "right",
+      align: "center",
     },
   ];
 
@@ -453,11 +480,16 @@ const BonusManagementPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] text-[#5E503F]/70">
-                      {rule.type === "Percentage"
-                        ? `Percentage: ${rule.value}% of milk amount`
-                        : `Fixed: ₹ ${rule.value.toFixed(
-                            2,
-                          )} per farmer within period`}
+                      {rule.type === "Percentage" &&
+                        `Percentage: ${rule.value}% of milk amount`}
+
+                      {rule.type === "Fixed" &&
+                        `Fixed: ₹ ${rule.value.toFixed(2)} per farmer within period`}
+
+                      {rule.type === "PerAmount" &&
+                        `₹ ${rule.value} on every ₹ ${rule.perAmount}`}
+
+                      {rule.type === "PerLiter" && `₹ ${rule.value} per liter`}
                     </div>
                     {rule.description && (
                       <div className="text-[11px] text-[#5E503F]/70">
@@ -676,7 +708,14 @@ const BonusManagementPage: React.FC = () => {
                   Rule Type
                 </span>
                 <div className="mt-1 flex gap-2">
-                  {(["Percentage", "Fixed"] as BonusType[]).map((t) => (
+                  {(
+                    [
+                      "Percentage",
+                      "Fixed",
+                      "PerAmount",
+                      "PerLiter",
+                    ] as BonusType[]
+                  ).map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -687,7 +726,13 @@ const BonusManagementPage: React.FC = () => {
                           : "border-[#E9E2C8] text-[#5E503F]"
                       }`}
                     >
-                      {t === "Percentage" ? "Percentage (%)" : "Fixed (₹)"}
+                      {t === "Percentage"
+                        ? "Percentage (%)"
+                        : t === "Fixed"
+                          ? "Fixed (₹)"
+                          : t === "PerAmount"
+                            ? "₹ Per Amount"
+                            : "₹ Per Liter"}
                     </button>
                   ))}
                 </div>
@@ -704,6 +749,17 @@ const BonusManagementPage: React.FC = () => {
                 onChange={(e) => setRuleValue(e.target.value)}
                 error={ruleErrors.value}
               />
+              {ruleType === "PerAmount" && (
+                <InputField
+                  label="Per Amount (₹)"
+                  requiredLabel
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={rulePerAmount}
+                  onChange={(e) => setRulePerAmount(e.target.value)}
+                />
+              )}
               <div>
                 <label className="text-xs font-medium text-[#5E503F]">
                   Description (optional)
@@ -716,6 +772,7 @@ const BonusManagementPage: React.FC = () => {
                   placeholder="Any notes about this rule..."
                 />
               </div>
+
               <div className="flex items-center gap-2 text-xs text-[#5E503F]">
                 <input
                   id="rule-active"
