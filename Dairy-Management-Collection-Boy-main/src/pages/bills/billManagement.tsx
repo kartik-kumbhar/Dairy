@@ -314,7 +314,7 @@ const BillManagementPage: React.FC = () => {
       id: "farmer",
       header: "Farmer",
       cell: (row) => (
-        <div>
+        <div className="min-w-[140px]">
           <div className="text-[#5E503F] text-sm">{row.farmerName}</div>
           <div className="text-[11px] text-[#5E503F]/60">{row.farmerCode}</div>
         </div>
@@ -324,7 +324,7 @@ const BillManagementPage: React.FC = () => {
       id: "period",
       header: "Period",
       cell: (row) => (
-        <span className="whitespace-nowrap text-xs text-[#5E503F]">
+        <span className="text-xs text-[#5E503F] whitespace-nowrap">
           {row.periodFrom} → {row.periodTo}
         </span>
       ),
@@ -492,10 +492,10 @@ Thank you.
   };
 
   return (
-    <div className="h-full w-full overflow-auto bg-[#F8F4E3] px-3 py-4 sm:p-6">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 sm:gap-6">
+<div className="w-full min-w-0 bg-[#F8F4E3] p-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#5E503F]">
               Bill Management
@@ -507,7 +507,7 @@ Thank you.
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Bills"
             value={billStats.totalBills}
@@ -528,7 +528,7 @@ Thank you.
 
         {/* Generate Bills */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#5E503F]">
               Generate Bills
             </h2>
@@ -537,7 +537,7 @@ Thank you.
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="text-xs font-medium text-[#5E503F]">
                 Bill Scope
@@ -610,13 +610,13 @@ Thank you.
                 <Loader size="md" message="Calculating bills..." />
               </div>
             ) : calculatedRows.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-[#E9E2C8] bg-[#F8F4E3] py-8 text-center text-sm text-[#5E503F]/60">
+              <div className="py-8 text-center text-sm text-[#5E503F]/60">
                 No bill data calculated yet.
               </div>
             ) : (
               <>
                 <div className="w-full overflow-x-auto">
-                  <div className="min-w-[720px]">
+                  <div className="min-w-[900px]">
                     <DataTable
                       data={calculatedRows}
                       columns={previewColumns}
@@ -629,7 +629,7 @@ Thank you.
 
                 {/* ////////////////////////////////////////// */}
                 <div className="mb-3 flex items-center justify-between">
-                  <div className="text-xs text-[#5E503F]/70">
+                  <div className="text-xs text-[#5E503F]/60">
                     Bills to generate: {calculatedRows.length}
                   </div>
 
@@ -641,7 +641,7 @@ Thank you.
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
+                <div className="mt-4 flex items-center justify-end gap-3 flex-wrap">
                   {/* WHATSAPP BUTTON */}
                   {scope === "Single" && calculatedRows.length === 1 && (
                     <button
@@ -692,7 +692,7 @@ Thank you.
             </h2>
           </div>
 
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="mb-4 flex flex-wrap items-end gap-3">
             <SelectField
               label="Status"
               value={billStatusFilter}
@@ -735,7 +735,7 @@ Thank you.
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <div className="min-w-[900px]">
+              <div className="min-w-[1000px]">
                 <DataTable
                   data={filteredBills}
                   columns={billColumns}

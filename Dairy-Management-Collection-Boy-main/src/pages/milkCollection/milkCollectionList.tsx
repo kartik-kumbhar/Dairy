@@ -195,7 +195,7 @@ const MilkCollectionListPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setDeleteTarget(row)}
-            className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
+          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
         >
           Delete
         </button>
@@ -204,10 +204,10 @@ const MilkCollectionListPage: React.FC = () => {
   ];
 
   return (
-    <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="h-full w-full overflow-y-auto bg-[#F8F4E3] p-4 sm:p-5 lg:p-6">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 lg:gap-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[#5E503F]">
               Milk Collection
@@ -226,7 +226,7 @@ const MilkCollectionListPage: React.FC = () => {
         </div>
 
         {/* Stat cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             title="Total Liters"
             value={totals.totalLiters.toFixed(2)}

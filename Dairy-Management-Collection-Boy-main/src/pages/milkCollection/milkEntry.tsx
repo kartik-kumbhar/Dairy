@@ -294,8 +294,8 @@ const MilkEntryPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="h-full w-full overflow-y-auto bg-[#F8F4E3] p-4 sm:p-5 lg:p-6">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 lg:gap-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-[#5E503F]">Milk Collection</h1>
@@ -317,7 +317,7 @@ const MilkEntryPage: React.FC = () => {
           ) : (
             <>
               {/* First row: Date, Shift, Farmer Name */}
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <InputField
                   label="Date"
                   requiredLabel
@@ -373,7 +373,7 @@ const MilkEntryPage: React.FC = () => {
                     Milk Type <span className="text-red-500">*</span>
                   </span>
 
-                  <div className="mt-1 flex gap-3">
+                  <div className="mt-2 grid grid-cols-2 sm:flex gap-3">
                     {selectedFarmer.milkType.map((t) => (
                       <button
                         key={t}
@@ -393,7 +393,7 @@ const MilkEntryPage: React.FC = () => {
               )}
 
               {/* Second row: Farmer Code, Liters, Fat, SNF */}
-              <div className="mt-4 grid gap-4 md:grid-cols-4">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <InputField
                   label="Farmer Code"
                   value={farmerCode}
@@ -436,7 +436,7 @@ const MilkEntryPage: React.FC = () => {
               </div>
 
               {/* Third row: Rate, Total Amount, Save */}
-              <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <InputField
                   label="Rate (₹)"
                   value={loadingRate ? "Fetching..." : rate}
@@ -449,7 +449,7 @@ const MilkEntryPage: React.FC = () => {
                   value={amount.toFixed(2)}
                   readOnly
                 />
-                <div className="flex items-end">
+                <div className="flex items-end lg:col-span-1">
                   <button
                     type="button"
                     onClick={handleSave}
@@ -484,10 +484,10 @@ const MilkEntryPage: React.FC = () => {
             Milk Can Platform (40L each)
           </h2>
 
-          <div className="overflow-x-auto">
-            <div className="flex min-w-max">
+          <div className="overflow-x-auto pb-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 min-w-[600px] lg:min-w-0">
               {/* Cow Morning */}
-              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8]">
                 <div className=" text-xs font-semibold text-[#E76F51]">
                   🐄 Cow Morning
                 </div>
@@ -642,7 +642,7 @@ const MilkEntryPage: React.FC = () => {
 
         {/* List + Filters */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="mb-4 flex flex-wrap items-center gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             <h2 className="text-sm font-semibold text-[#5E503F]">
               Collections
             </h2>

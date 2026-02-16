@@ -68,14 +68,14 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   const fatFactor = milkType === "cow" ? 4 : 5;
   const snfFactor = 1;
 
-  // ✅ Default Ranges
+  // Default Ranges
   const fatMin = 3.0;
   const fatMax = 6.0;
-  const fatStep = 0.5;
+  const fatStep = 0.1;
 
   const snfMin = 7.0;
   const snfMax = 9.5;
-  const snfStep = 0.5;
+  const snfStep = 0.1;
 
   const fats = generateRange(fatMin, fatMax, fatStep);
   const snfs = generateRange(snfMin, snfMax, snfStep);
@@ -139,11 +139,11 @@ const RateChartPage: React.FC = () => {
 
               fatMin: res.data.cow.fatMin ?? 3.0,
               fatMax: res.data.cow.fatMax ?? 6.0,
-              fatStep: res.data.cow.fatStep ?? 0.5,
+              fatStep: res.data.cow.fatStep ?? 0.1,
 
               snfMin: res.data.cow.snfMin ?? 7.0,
               snfMax: res.data.cow.snfMax ?? 9.5,
-              snfStep: res.data.cow.snfStep ?? 0.5,
+              snfStep: res.data.cow.snfStep ?? 0.1,
 
               effectiveFrom:
                 res.data.cow.effectiveFrom ??
@@ -157,11 +157,11 @@ const RateChartPage: React.FC = () => {
 
               fatMin: res.data.buffalo.fatMin ?? 3.0,
               fatMax: res.data.buffalo.fatMax ?? 6.0,
-              fatStep: res.data.buffalo.fatStep ?? 0.5,
+              fatStep: res.data.buffalo.fatStep ?? 0.1,
 
               snfMin: res.data.buffalo.snfMin ?? 7.0,
               snfMax: res.data.buffalo.snfMax ?? 9.5,
-              snfStep: res.data.buffalo.snfStep ?? 0.5,
+              snfStep: res.data.buffalo.snfStep ?? 0.1,
 
               effectiveFrom:
                 res.data.buffalo.effectiveFrom ??
@@ -231,17 +231,17 @@ const RateChartPage: React.FC = () => {
       return;
     }
 
-    // ✅ Performance protection
-    const fatCount =
-      Math.floor((current.fatMax - current.fatMin) / current.fatStep) + 1;
+    // // ✅ Performance protection
+    // const fatCount =
+    //   Math.floor((current.fatMax - current.fatMin) / current.fatStep) + 1;
 
-    const snfCount =
-      Math.floor((current.snfMax - current.snfMin) / current.snfStep) + 1;
+    // const snfCount =
+    //   Math.floor((current.snfMax - current.snfMin) / current.snfStep) + 1;
 
-    if (fatCount * snfCount > 500) {
-      toast.error("Range too large. Reduce rows/columns.");
-      return;
-    }
+    // if (fatCount * snfCount > 500) {
+    //   toast.error("Range too large. Reduce rows/columns.");
+    //   return;
+    // }
     const fats = generateRange(current.fatMin, current.fatMax, current.fatStep);
 
     const snfs = generateRange(current.snfMin, current.snfMax, current.snfStep);
@@ -430,11 +430,11 @@ const RateChartPage: React.FC = () => {
 
         fatMin: Math.min(...fats),
         fatMax: Math.max(...fats),
-        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.5,
+        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.1,
 
         snfMin: Math.min(...snfs),
         snfMax: Math.max(...snfs),
-        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.5,
+        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.1,
 
         fats,
         snfs,
@@ -665,49 +665,53 @@ const RateChartPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-xs">
-              <thead>
-                <tr>
-                  <th className="border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
-                    FAT \ SNF
-                  </th>
-                  {current.snfs.map((snf) => (
-                    <th
-                      key={snf}
-                      className="border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-center text-[11px] text-[#5E503F]"
-                    >
-                      {snf.toFixed(1)}
+          {/* <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-xs"> */}
+          <div className="w-full rounded-lg border border-[#E9E2C8]">
+            <div className="overflow-auto max-h-[calc(100vh-520px)]">
+              <table className="min-w-max border-collapse text-xs">
+                <thead className="sticky top-0 z-20 bg-[#F8F4E3]">
+                  <tr>
+<th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
+                      FAT \ SNF
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {current.fats.map((fat, fi) => (
-                  <tr key={fat}>
-                    <th className="border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
-                      {fat.toFixed(1)}
-                    </th>
-                    {current.snfs.map((snf, si) => (
-                      <td
+                    {current.snfs.map((snf) => (
+                      <th
                         key={snf}
-                        className="border border-[#E9E2C8] px-1 py-[2px] text-center"
+                        className="border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-center text-[11px] text-[#5E503F]"
                       >
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="w-20 rounded border border-[#E9E2C8] bg-white px-2 py-1 text-right text-[11px] text-[#5E503F] outline-none focus:ring-1 focus:ring-[#2A9D8F]"
-                          value={current.rates[fi][si].toFixed(2)}
-                          onChange={(e) =>
-                            handleCellChange(fi, si, e.target.value)
-                          }
-                        />
-                      </td>
+                        {snf.toFixed(1)}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {current.fats.map((fat, fi) => (
+                    <tr key={fat}>
+<th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
+                        {fat.toFixed(1)}
+                      </th>
+                      {current.snfs.map((snf, si) => (
+                        <td
+                          key={snf}
+                          className="border border-[#E9E2C8] px-1 py-[2px] text-center"
+                        >
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-20 rounded border border-[#E9E2C8] bg-white px-2 py-1 text-right text-[11px] text-[#5E503F] outline-none focus:ring-1 focus:ring-[#2A9D8F]"
+                            value={current.rates[fi][si].toFixed(2)}
+                            onChange={(e) =>
+                              handleCellChange(fi, si, e.target.value)
+                            }
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Export Button */}
@@ -759,3 +763,4 @@ const RateChartPage: React.FC = () => {
 };
 
 export default RateChartPage;
+

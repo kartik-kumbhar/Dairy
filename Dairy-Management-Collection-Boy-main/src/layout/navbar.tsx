@@ -209,26 +209,6 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           <GearIcon />
         </button>
 
-        {/* <div className="flex items-center gap-2 rounded-full border border-[#E9E2C8] bg-[#F8F4E3] px-2 sm:px-3 py-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2A9D8F] text-sm font-semibold text-white">
-            {userName
-              .split(" ")
-              .map((p) => p[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()}
-          </div>
-
-          <div className="hidden sm:block text-xs">
-            <div className="font-semibold text-[#5E503F]">{userName}</div>
-            <div className="text-[11px] text-[#5E503F]/70">Administrator</div>
-          </div>
-
-          <div className="hidden sm:block text-[#5E503F]/60">
-            <UserIcon />
-          </div>
-        </div> */}
-        {/* User Section */}
         <div className="relative">
           <div
             onClick={() => {

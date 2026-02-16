@@ -391,7 +391,8 @@ const InventoryListPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[#5E503F]">Inventory</h1>
+            <h1 className="text-2xl font-bold text-[#5E503F]">
+            Inventory</h1>
             <p className="text-sm text-[#5E503F]/70">
               Track cattle feed, cans, reagents and other stock.
             </p>
