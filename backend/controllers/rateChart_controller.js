@@ -1,8 +1,8 @@
 import RateChart from "../models/RateChart.js";
 import RateChartHistory from "../models/RateChartHistory.js";
 
-const DEFAULT_FATS = [3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0];
-const DEFAULT_SNFS = [7.0, 7.5, 8.0, 8.5, 9.0, 9.5];
+const DEFAULT_FATS = [3.0, 3.5, 4.0, 4.5, 5.0];
+const DEFAULT_SNFS = [7.0, 7.5, 8.0, 8.5, 9.0];
 
 const generateRates = (baseRate, fatFactor, snfFactor) => {
   return DEFAULT_FATS.map((fat) =>
@@ -12,36 +12,31 @@ const generateRates = (baseRate, fatFactor, snfFactor) => {
   );
 };
 
-// const defaultRateChart = (milkType) => {
-//   const baseRate = milkType === "cow" ? 20 : 30;
-//   const fatFactor = milkType === "cow" ? 4 : 5;
-//   const snfFactor = 1;
-
-//   return {
-//     milkType,
-//     fats: DEFAULT_FATS,
-//     snfs: DEFAULT_SNFS,
-//     rates: generateRates(baseRate, fatFactor, snfFactor),
-//     baseRate,
-//     fatFactor,
-//     snfFactor,
-//     effectiveFrom: new Date().toISOString().slice(0, 10),
-//     updatedAt: new Date().toISOString(),
-//   };
-// };
-
 const defaultRateChart = (milkType) => {
-  const baseRate = milkType === "cow" ? 20 : 30;
-  const fatFactor = milkType === "cow" ? 4 : 5;
+  // const baseRate = milkType === "cow" ? 20 : 30;
+  // const fatFactor = milkType === "cow" ? 4 : 5;
+  let baseRate, fatFactor;
+
+  if (milkType === "cow") {
+    baseRate = 20;
+    fatFactor = 1;
+  } else if (milkType === "buffalo") {
+    baseRate = 30;
+    fatFactor = 1;
+  } else {
+    baseRate = 25; // MIX default
+    fatFactor = 1; // MIX default
+  }
+
   const snfFactor = 1;
 
   const fatMin = 3.0;
-  const fatMax = 6.0;
-  const fatStep = 0.5;
+  const fatMax = 5.0;
+  const fatStep = 0.2;
 
   const snfMin = 7.0;
-  const snfMax = 9.5;
-  const snfStep = 0.5;
+  const snfMax = 9.0;
+  const snfStep = 0.2;
 
   const fats = generateRange(fatMin, fatMax, fatStep);
   const snfs = generateRange(snfMin, snfMax, snfStep);
@@ -102,8 +97,23 @@ export const getRateCharts = async (req, res) => {
     if (!buffalo) {
       buffalo = await RateChart.create(defaultRateChart("buffalo"));
     }
+    let mix = await RateChart.findOne({ milkType: "mix" }).sort({
+      effectiveFrom: -1,
+    });
 
-    res.json({ cow, buffalo });
+    if (!mix) {
+      mix = await RateChart.create(defaultRateChart("mix"));
+    }
+
+    const clean = (doc) => (doc.toObject ? doc.toObject() : doc);
+
+    res.json({
+      cow: clean(cow),
+      buffalo: clean(buffalo),
+      mix: clean(mix),
+    });
+
+    // res.json({ cow, buffalo, mix });
   } catch (err) {
     console.error("RateChart error:", err);
     res.status(500).json({ message: "Failed to fetch rate charts" });
@@ -119,7 +129,7 @@ export const updateRateChart = async (req, res) => {
   try {
     const { milkType } = req.params;
 
-    if (!["cow", "buffalo"].includes(milkType)) {
+    if (!["cow", "buffalo", "mix"].includes(milkType)) {
       return res.status(400).json({ message: "Invalid milk type" });
     }
 
@@ -138,7 +148,7 @@ export const updateRateChart = async (req, res) => {
     });
 
     const updated = await RateChart.findOneAndUpdate(
-      { milkType, effectiveFrom },
+      { milkType },
       {
         ...historyData,
         milkType,
@@ -159,6 +169,38 @@ export const updateRateChart = async (req, res) => {
   }
 };
 
+// export const getRateForMilk = async (req, res) => {
+//   try {
+//     const { milkType, fat, snf, date } = req.query;
+
+//     if (!milkType || !fat || !snf || !date) {
+//       return res.status(400).json({ message: "Missing parameters" });
+//     }
+
+//     const chart = await RateChart.findOne({
+//       milkType,
+//       effectiveFrom: { $lte: date },
+//     }).sort({ effectiveFrom: -1 });
+
+//     if (!chart) {
+//       return res.status(404).json({ message: "Rate chart not found" });
+//     }
+
+//     const fatIndex = chart.fats.indexOf(Number(fat));
+//     const snfIndex = chart.snfs.indexOf(Number(snf));
+
+//     if (fatIndex === -1 || snfIndex === -1) {
+//       return res.status(404).json({ message: "Rate not defined for FAT/SNF" });
+//     }
+
+//     res.json({
+//       rate: chart.rates[fatIndex][snfIndex],
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 export const getRateForMilk = async (req, res) => {
   try {
     const { milkType, fat, snf, date } = req.query;

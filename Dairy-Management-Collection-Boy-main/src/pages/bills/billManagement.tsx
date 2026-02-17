@@ -274,8 +274,18 @@ const BillManagementPage: React.FC = () => {
 
   // ---------- TABLES ----------
   const previewColumns: DataTableColumn<CalculatedBillRow>[] = [
-    { id: "farmerCode", header: "Code", accessor: "farmerCode" },
-    { id: "farmerName", header: "Farmer Name", accessor: "farmerName" },
+    {
+      id: "farmerCode",
+      header: "Code",
+      accessor: "farmerCode",
+      align: "center",
+    },
+    {
+      id: "farmerName",
+      header: "Farmer Name",
+      accessor: "farmerName",
+      align: "center",
+    },
     {
       id: "liters",
       header: "Liters",
@@ -309,10 +319,11 @@ const BillManagementPage: React.FC = () => {
   ];
 
   const billColumns: DataTableColumn<Bill>[] = [
-    { id: "billNo", header: "Bill No", accessor: "billNo" },
+    { id: "billNo", header: "Bill No", accessor: "billNo", align: "center" },
     {
       id: "farmer",
       header: "Farmer",
+      align: "center",
       cell: (row) => (
         <div className="min-w-[140px]">
           <div className="text-[#5E503F] text-sm">{row.farmerName}</div>
@@ -323,6 +334,7 @@ const BillManagementPage: React.FC = () => {
     {
       id: "period",
       header: "Period",
+      align: "center",
       cell: (row) => (
         <span className="text-xs text-[#5E503F] whitespace-nowrap">
           {row.periodFrom} → {row.periodTo}
@@ -492,7 +504,7 @@ Thank you.
   };
 
   return (
-<div className="w-full min-w-0 bg-[#F8F4E3] p-6">
+    <div className="w-full min-w-0 bg-[#F8F4E3] p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">

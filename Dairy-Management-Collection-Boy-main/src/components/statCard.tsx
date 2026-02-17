@@ -8,7 +8,8 @@ export type StatVariant =
   | "orange"
   | "red"
   | "green"
-  | "neutral";
+  | "neutral"
+  | "purple";
 
 export interface StatCardProps {
   title: string;

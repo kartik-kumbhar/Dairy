@@ -9,3 +9,6 @@ export const getFarmers = () =>
 
 export const deleteFarmer = (id: string) =>
   api.delete<{ message: string }>(`/farmers/${id}`);
+
+export const updateFarmer = (id: string, data: AddFarmerRequest) =>
+  api.put<Farmer>(`/farmers/${id}`, data);

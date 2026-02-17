@@ -27,6 +27,7 @@ type RateChartExcelRow = {
 type RateChartStorage = {
   cow: MilkRateChart;
   buffalo: MilkRateChart;
+  mix: MilkRateChart;
 };
 
 // Default FAT and SNF steps used to build the matrix
@@ -64,18 +65,30 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   const now = new Date().toISOString();
   const today = now.slice(0, 10);
 
-  const baseRate = milkType === "cow" ? 20 : 30;
-  const fatFactor = milkType === "cow" ? 4 : 5;
+  let baseRate: number;
+  let fatFactor: number;
+
+  if (milkType === "cow") {
+    baseRate = 20;
+    fatFactor = 1;
+  } else if (milkType === "buffalo") {
+    baseRate = 30;
+    fatFactor = 1;
+  } else {
+    baseRate = 25;
+    fatFactor = 1;
+  }
+
   const snfFactor = 1;
 
   // Default Ranges
   const fatMin = 3.0;
-  const fatMax = 6.0;
-  const fatStep = 0.1;
+  const fatMax = 5.0;
+  const fatStep = 0.2;
 
   const snfMin = 7.0;
-  const snfMax = 9.5;
-  const snfStep = 0.1;
+  const snfMax = 9.0;
+  const snfStep = 0.2;
 
   const fats = generateRange(fatMin, fatMax, fatStep);
   const snfs = generateRange(snfMin, snfMax, snfStep);
@@ -110,11 +123,10 @@ function defaultChart(milkType: MilkType): MilkRateChart {
 }
 
 function generateRange(min: number, max: number, step: number): number[] {
-  const arr: number[] = [];
-  for (let v = min; v <= max; v += step) {
-    arr.push(Number(v.toFixed(2)));
-  }
-  return arr;
+  const count = Math.round((max - min) / step);
+  return Array.from({ length: count + 1 }, (_, i) =>
+    Number((min + i * step).toFixed(2)),
+  );
 }
 
 const RateChartPage: React.FC = () => {
@@ -138,12 +150,12 @@ const RateChartPage: React.FC = () => {
               ...res.data.cow,
 
               fatMin: res.data.cow.fatMin ?? 3.0,
-              fatMax: res.data.cow.fatMax ?? 6.0,
-              fatStep: res.data.cow.fatStep ?? 0.1,
+              fatMax: res.data.cow.fatMax ?? 5.0,
+              fatStep: res.data.cow.fatStep ?? 0.2,
 
               snfMin: res.data.cow.snfMin ?? 7.0,
-              snfMax: res.data.cow.snfMax ?? 9.5,
-              snfStep: res.data.cow.snfStep ?? 0.1,
+              snfMax: res.data.cow.snfMax ?? 9.0,
+              snfStep: res.data.cow.snfStep ?? 0.2,
 
               effectiveFrom:
                 res.data.cow.effectiveFrom ??
@@ -156,12 +168,12 @@ const RateChartPage: React.FC = () => {
               ...res.data.buffalo,
 
               fatMin: res.data.buffalo.fatMin ?? 3.0,
-              fatMax: res.data.buffalo.fatMax ?? 6.0,
-              fatStep: res.data.buffalo.fatStep ?? 0.1,
+              fatMax: res.data.buffalo.fatMax ?? 5.0,
+              fatStep: res.data.buffalo.fatStep ?? 0.2,
 
               snfMin: res.data.buffalo.snfMin ?? 7.0,
-              snfMax: res.data.buffalo.snfMax ?? 9.5,
-              snfStep: res.data.buffalo.snfStep ?? 0.1,
+              snfMax: res.data.buffalo.snfMax ?? 9.0,
+              snfStep: res.data.buffalo.snfStep ?? 0.2,
 
               effectiveFrom:
                 res.data.buffalo.effectiveFrom ??
@@ -169,9 +181,14 @@ const RateChartPage: React.FC = () => {
             }
           : defaultChart("buffalo");
 
+        const mixChart = res.data.mix
+          ? { ...res.data.mix }
+          : defaultChart("mix");
+
         setCharts({
           cow: cowChart,
           buffalo: buffaloChart,
+          mix: mixChart,
         });
       } catch (err) {
         console.error("Failed to load rate charts:", err);
@@ -190,17 +207,31 @@ const RateChartPage: React.FC = () => {
     );
   }
 
-  const current: MilkRateChart =
-    activeMilkType === "cow" ? charts.cow : charts.buffalo;
+  // const current: MilkRateChart =
+  // activeMilkType === "cow" ? charts.cow : charts.buffalo;
+  // const current: MilkRateChart | null = charts?.[activeMilkType] ?? null;
+  const current: MilkRateChart | null = charts
+    ? (charts[activeMilkType] ?? null)
+    : null;
+
+  if (!current || !current.rates || !current.fats || !current.snfs) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-[#F8F4E3]">
+        <span className="text-sm text-[#5E503F]/70">
+          Preparing {activeMilkType} rate chart...
+        </span>
+      </div>
+    );
+  }
 
   const setCurrent = (updated: MilkRateChart) => {
-    const copy: RateChartStorage = { ...charts };
-    if (updated.milkType === "cow") {
-      copy.cow = updated;
-    } else {
-      copy.buffalo = updated;
-    }
-    setCharts(copy);
+    setCharts((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [updated.milkType]: JSON.parse(JSON.stringify(updated)),
+      };
+    });
   };
 
   const handleFormulaChange = (
@@ -270,18 +301,40 @@ const RateChartPage: React.FC = () => {
     toast.success(`${activeMilkType} rate chart reset to default`);
   };
 
+  // const handleCellChange = (
+  //   fatIndex: number,
+  //   snfIndex: number,
+  //   value: string,
+  // ) => {
+  //   const num = parseFloat(value);
+  //   if (Number.isNaN(num)) return;
+  //   const newRates = current.rates.map((row, rIdx) =>
+  //     row.map((cell, cIdx) =>
+  //       rIdx === fatIndex && cIdx === snfIndex ? num : cell,
+  //     ),
+  //   );
+  //   setCurrent({
+  //     ...current,
+  //     rates: newRates,
+  //     updatedAt: new Date().toISOString(),
+  //   });
+  // };
   const handleCellChange = (
     fatIndex: number,
     snfIndex: number,
     value: string,
   ) => {
-    const num = parseFloat(value);
+    if (value === "") return;
+
+    const num = Number(value);
     if (Number.isNaN(num)) return;
+
     const newRates = current.rates.map((row, rIdx) =>
       row.map((cell, cIdx) =>
         rIdx === fatIndex && cIdx === snfIndex ? num : cell,
       ),
     );
+
     setCurrent({
       ...current,
       rates: newRates,
@@ -290,20 +343,18 @@ const RateChartPage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!current) return;
+
     try {
       setSaving(true);
 
-      const chartToSave =
-        activeMilkType === "cow" ? charts.cow : charts.buffalo;
-
-      await updateRateChart(activeMilkType, {
-        ...chartToSave,
-        effectiveFrom:
-          chartToSave.effectiveFrom || new Date().toISOString().slice(0, 10),
+      await updateRateChart(current.milkType, {
+        ...current,
+        effectiveFrom: new Date().toISOString().slice(0, 10),
         updatedAt: new Date().toISOString(),
       });
 
-      toast.success("Rate chart saved successfully");
+      toast.success(`${current.milkType} rate chart saved`);
     } catch (err) {
       console.error("Save failed:", err);
       toast.error("Failed to save rate chart");
@@ -313,7 +364,7 @@ const RateChartPage: React.FC = () => {
   };
 
   // Compute stats (no hooks, just plain logic)
-  const flatRates = current.rates.flat();
+  const flatRates = Array.isArray(current?.rates) ? current.rates.flat() : [];
   const stats = flatRates.length
     ? {
         min: round2(Math.min(...flatRates)),
@@ -372,6 +423,8 @@ const RateChartPage: React.FC = () => {
   const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (
     e,
   ) => {
+    const selectedMilkType = activeMilkType; // 🔒 LOCK
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -430,11 +483,12 @@ const RateChartPage: React.FC = () => {
 
         fatMin: Math.min(...fats),
         fatMax: Math.max(...fats),
-        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.1,
+        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.2,
 
         snfMin: Math.min(...snfs),
         snfMax: Math.max(...snfs),
-        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.1,
+        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.2,
+        milkType: selectedMilkType,
 
         fats,
         snfs,
@@ -444,7 +498,15 @@ const RateChartPage: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      setCurrent(updatedChart);
+      // setCurrent(updatedChart);
+      setCharts((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [selectedMilkType]: updatedChart,
+        };
+      });
+
       toast.success(
         `Imported rate chart for ${activeMilkType} from ${sheetName}.`,
       );
@@ -477,7 +539,7 @@ const RateChartPage: React.FC = () => {
         {/* Tabs + summary cards */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
-            {(["cow", "buffalo"] as MilkType[]).map((mt) => (
+            {(["cow", "buffalo", "mix"] as MilkType[]).map((mt) => (
               <button
                 key={mt}
                 type="button"
@@ -488,7 +550,9 @@ const RateChartPage: React.FC = () => {
                     : "bg-[#E9E2C8] text-[#5E503F]"
                 }`}
               >
-                {mt === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
+                {mt === "cow" && "🐄 Cow Milk"}
+                {mt === "buffalo" && "🐃 Buffalo Milk"}
+                {mt === "mix" && "🥛 Mix Milk"}
               </button>
             ))}
           </div>
@@ -568,7 +632,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Min"
                 type="number"
-                step="0.1"
+                step="0.2"
                 value={String(current.fatMin)}
                 onChange={(e) =>
                   setCurrent({ ...current, fatMin: Number(e.target.value) })
@@ -577,7 +641,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Max"
                 type="number"
-                step="0.1"
+                step="0.2"
                 value={String(current.fatMax)}
                 onChange={(e) =>
                   setCurrent({ ...current, fatMax: Number(e.target.value) })
@@ -603,7 +667,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Min"
                 type="number"
-                step="0.1"
+                step="0.2"
                 value={String(current.snfMin)}
                 onChange={(e) =>
                   setCurrent({ ...current, snfMin: Number(e.target.value) })
@@ -612,7 +676,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Max"
                 type="number"
-                step="0.1"
+                step="0.2"
                 value={String(current.snfMax)}
                 onChange={(e) =>
                   setCurrent({ ...current, snfMax: Number(e.target.value) })
@@ -672,7 +736,7 @@ const RateChartPage: React.FC = () => {
               <table className="min-w-max border-collapse text-xs">
                 <thead className="sticky top-0 z-20 bg-[#F8F4E3]">
                   <tr>
-<th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
+                    <th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
                       FAT \ SNF
                     </th>
                     {current.snfs.map((snf) => (
@@ -688,7 +752,7 @@ const RateChartPage: React.FC = () => {
                 <tbody>
                   {current.fats.map((fat, fi) => (
                     <tr key={fat}>
-<th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
+                      <th className="sticky left-0 z-30 border border-[#E9E2C8] bg-[#F8F4E3] px-2 py-1 text-left text-[11px] text-[#5E503F]">
                         {fat.toFixed(1)}
                       </th>
                       {current.snfs.map((snf, si) => (
@@ -700,7 +764,7 @@ const RateChartPage: React.FC = () => {
                             type="number"
                             step="0.01"
                             className="w-20 rounded border border-[#E9E2C8] bg-white px-2 py-1 text-right text-[11px] text-[#5E503F] outline-none focus:ring-1 focus:ring-[#2A9D8F]"
-                            value={current.rates[fi][si].toFixed(2)}
+                            value={(current.rates?.[fi]?.[si] ?? 0).toFixed(2)}
                             onChange={(e) =>
                               handleCellChange(fi, si, e.target.value)
                             }
@@ -745,8 +809,15 @@ const RateChartPage: React.FC = () => {
         description={
           <div className="space-y-1 text-sm">
             <p>
-              This will reset the entire <strong>{activeMilkType}</strong> rate
-              chart back to the default formula‑based values.
+              This will reset the entire{" "}
+              <strong>
+                {activeMilkType === "cow"
+                  ? "Cow"
+                  : activeMilkType === "buffalo"
+                    ? "Buffalo"
+                    : "Mix"}
+              </strong>
+              rate chart back to the default formula‑based values.
             </p>
             <p className="text-xs text-[#5E503F]/70">
               Any manual changes you made in the matrix will be lost.
@@ -763,4 +834,3 @@ const RateChartPage: React.FC = () => {
 };
 
 export default RateChartPage;
-

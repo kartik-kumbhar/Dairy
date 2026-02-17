@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const rateChartHistorySchema = new mongoose.Schema(
   {
-    milkType: { type: String, enum: ["cow", "buffalo"], required: true },
+    milkType: { type: String, enum: ["cow", "buffalo","mix"], required: true },
     effectiveFrom: { type: String, required: true },
 
     fats: [Number],

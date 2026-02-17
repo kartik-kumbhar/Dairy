@@ -156,21 +156,7 @@ const AddFarmerPage: React.FC = () => {
                   Milk Type <span className="text-red-500">*</span>
                 </span>
                 <div className="mt-1 flex gap-3">
-                  {/* {(["cow", "buffalo"] as MilkType[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setMilkType(t)}
-                      className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
-                        milkType === t
-                          ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
-                          : "border-[#E9E2C8] text-[#5E503F]"
-                      }`}
-                    >
-                      {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
-                    </button>
-                  ))} */}
-                  {(["cow", "buffalo"] as MilkType[]).map((t) => {
+                  {(["cow", "buffalo", "mix"] as MilkType[]).map((t) => {
                     const active = milkType.includes(t);
 
                     return (
@@ -184,7 +170,10 @@ const AddFarmerPage: React.FC = () => {
                             : "border-[#E9E2C8] text-[#5E503F]"
                         }`}
                       >
-                        {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
+                        {/* {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"} */}
+                        {t === "cow" && "🐄 Cow Milk"}
+                        {t === "buffalo" && "🐃 Buffalo Milk"}
+                        {t === "mix" && "🥛 Mix Milk"}
                       </button>
                     );
                   })}

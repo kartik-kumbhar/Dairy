@@ -4,9 +4,9 @@ const rateChartSchema = new mongoose.Schema(
   {
     milkType: {
       type: String,
-      enum: ["cow", "buffalo"],
+      enum: ["cow", "buffalo", "mix"],
       required: true,
-      unique: true,
+      // unique: true,
     },
     fats: {
       type: [Number],
@@ -24,8 +24,12 @@ const rateChartSchema = new mongoose.Schema(
     snfMax: { type: Number, required: true },
     snfStep: { type: Number, required: true },
 
+    // rates: {
+    //   type: [[[Number]]],
+    //   required: true,
+    // },
     rates: {
-      type: [[Number]],
+      type: mongoose.Schema.Types.Mixed,
       required: true,
     },
     baseRate: {
@@ -45,9 +49,10 @@ const rateChartSchema = new mongoose.Schema(
     },
     effectiveFrom: {
       type: String, // YYYY-MM-DD
-      required: true,
+      required: true, 
       default: () => new Date().toISOString().slice(0, 10),
     },
+
   },
   { timestamps: true },
 );

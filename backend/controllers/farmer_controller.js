@@ -27,3 +27,23 @@ export const deleteFarmer = async (req, res) => {
     res.status(500).json({ message: "Failed to delete farmer" });
   }
 };
+
+export const updateFarmer = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const farmer = await Farmer.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!farmer) {
+      return res.status(404).json({ message: "Farmer not found" });
+    }
+
+    res.json(farmer);
+  } catch (err) {
+    console.error("Update farmer failed:", err);
+    res.status(500).json({ message: "Failed to update farmer" });
+  }
+};

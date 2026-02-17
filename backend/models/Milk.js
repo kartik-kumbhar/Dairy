@@ -37,7 +37,7 @@ const milkSchema = new mongoose.Schema(
     },
     milkType: {
       type: String,
-      enum: ["cow", "buffalo"],
+      enum: ["cow", "buffalo","mix"],
       required: true,
     },
 

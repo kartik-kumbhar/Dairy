@@ -9,6 +9,7 @@ import StatCard from "../../components/statCard";
 import ConfirmModal from "../../components/confirmModal";
 import { deleteFarmer } from "../../axios/farmer_api";
 import toast from "react-hot-toast";
+import { updateFarmer } from "../../axios/farmer_api";
 
 import { ROUTES } from "../../constants/routes";
 import { useFarmerContext } from "../../context/FarmerContext";
@@ -23,6 +24,13 @@ const FarmerListPage: React.FC = () => {
 
   const [deleteTarget, setDeleteTarget] = useState<Farmer | null>(null);
 
+  // edit modal
+  const [editFarmer, setEditFarmer] = useState<Farmer | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editMilkType, setEditMilkType] = useState<MilkType[]>([]);
+  const [editAddress, setEditAddress] = useState("");
+
   useEffect(() => {
     reloadFarmers();
   }, [reloadFarmers]);
@@ -30,24 +38,23 @@ const FarmerListPage: React.FC = () => {
   // ---- Stats ----
   const stats = useMemo(() => {
     const total = allFarmers.length;
-    // const cow = allFarmers.filter((f) => f.milkType === "cow").length;
-    // const buffalo = allFarmers.filter((f) => f.milkType === "buffalo").length;
+
     const cow = allFarmers.filter((f) => f.milkType.includes("cow")).length;
     const buffalo = allFarmers.filter((f) =>
       f.milkType.includes("buffalo"),
     ).length;
+    const mix = allFarmers.filter((f) => f.milkType.includes("mix")).length;
 
     const active = allFarmers.filter((f) => f.status === "Active").length;
     const inactive = total - active;
-    return { total, cow, buffalo, active, inactive };
+
+    return { total, cow, buffalo, mix, active, inactive };
   }, [allFarmers]);
 
   // ---- Filtered list ----
   const filteredFarmers = useMemo(() => {
     const term = search.trim().toLowerCase();
     return allFarmers.filter((f) => {
-      // const matchesMilk =
-      //   milkFilter === "All" ? true : f.milkType === milkFilter;
       const matchesMilk =
         milkFilter === "All" ? true : f.milkType.includes(milkFilter);
 
@@ -76,6 +83,44 @@ const FarmerListPage: React.FC = () => {
     }
   };
 
+  // Edit modal
+  const openEdit = (farmer: Farmer) => {
+    setEditFarmer(farmer);
+    setEditName(farmer.name);
+    setEditMobile(farmer.mobile);
+    setEditMilkType(farmer.milkType);
+    setEditAddress(farmer.address ?? "");
+  };
+
+  const toggleEditMilkType = (type: MilkType) => {
+    setEditMilkType((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  };
+
+  const saveEditFarmer = async () => {
+    if (!editFarmer) return;
+
+    if (!editName.trim()) return toast.error("Name required");
+    if (!/^\d{10}$/.test(editMobile)) return toast.error("Invalid mobile");
+    if (editMilkType.length === 0) return toast.error("Select milk type");
+
+    try {
+      await updateFarmer(editFarmer._id, {
+        name: editName,
+        mobile: editMobile,
+        milkType: editMilkType,
+        address: editAddress,
+      });
+
+      setEditFarmer(null);
+      reloadFarmers();
+      toast.success("Farmer updated successfully");
+    } catch {
+      toast.error("Failed to update farmer");
+    }
+  };
+
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -99,10 +144,11 @@ const FarmerListPage: React.FC = () => {
         </div>
 
         {/* Stat cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <StatCard title="Total Farmers" value={stats.total} variant="teal" />
           <StatCard title="Cow Milk" value={stats.cow} variant="red" />
           <StatCard title="Buffalo Milk" value={stats.buffalo} variant="blue" />
+          <StatCard title="Mix Milk" value={stats.mix} variant="purple" />
           <StatCard title="Active" value={stats.active} variant="green" />
           <StatCard title="Inactive" value={stats.inactive} variant="orange" />
         </div>
@@ -147,6 +193,17 @@ const FarmerListPage: React.FC = () => {
                 }`}
               >
                 Buffalo
+              </button>
+              <button
+                type="button"
+                onClick={() => setMilkFilter("mix")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                  milkFilter === "mix"
+                    ? "bg-[#2A9D8F] text-white"
+                    : "bg-[#E9E2C8] text-[#5E503F]"
+                }`}
+              >
+                Mix
               </button>
             </div>
 
@@ -266,10 +323,14 @@ const FarmerListPage: React.FC = () => {
                             className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
                               type === "cow"
                                 ? "bg-[#E76F51]/10 text-[#E76F51]"
-                                : "bg-[#457B9D]/10 text-[#457B9D]"
+                                : type === "buffalo"
+                                  ? "bg-[#457B9D]/10 text-[#457B9D]"
+                                  : "bg-purple-100 text-purple-700"
                             }`}
                           >
-                            {type === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
+                            {type === "cow" && "🐄 Cow"}
+                            {type === "buffalo" && "🐃 Buffalo"}
+                            {type === "mix" && "🥛 Mix"}
                           </span>
                         ))}
                       </div>
@@ -290,13 +351,23 @@ const FarmerListPage: React.FC = () => {
                       {f.joinDate}
                     </td>
                     <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(f)}
-                        className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(f)}
+                          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(f)}
+                          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -326,6 +397,90 @@ const FarmerListPage: React.FC = () => {
         onConfirm={handleDelete}
         onCancel={handleDelete}
       />
+
+      {/* Edit modal */}
+      {editFarmer && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-lg border border-[#E9E2C8] bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#E9E2C8] bg-[#2A9D8F] px-4 py-2">
+              <span className="text-sm font-semibold text-white">
+                Edit Farmer – {editFarmer.code}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditFarmer(null)}
+                className="text-sm text-white/80 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3 px-4 py-4">
+              <InputField
+                label="Farmer Name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+
+              <InputField
+                label="Mobile"
+                value={editMobile}
+                onChange={(e) => setEditMobile(e.target.value)}
+              />
+
+              {/* Milk Type */}
+              <div>
+                <label className="text-xs font-medium text-[#5E503F]">
+                  Milk Type
+                </label>
+                <div className="mt-2 flex gap-2">
+                  {(["cow", "buffalo", "mix"] as MilkType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleEditMilkType(t)}
+                      className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                        editMilkType.includes(t)
+                          ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                          : "border-[#E9E2C8]"
+                      }`}
+                    >
+                      {t === "cow" && "🐄 Cow"}
+                      {t === "buffalo" && "🐃 Buffalo"}
+                      {t === "mix" && "🥛 Mix"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                rows={3}
+                className="w-full rounded-md border border-[#E9E2C8] px-3 py-2 text-sm"
+                placeholder="Address"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-[#E9E2C8] bg-[#F8F4E3] px-4 py-2">
+              <button
+                type="button"
+                onClick={() => setEditFarmer(null)}
+                className="rounded-md border border-[#E9E2C8] bg-white px-4 py-1.5 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEditFarmer}
+                className="rounded-md bg-[#2A9D8F] px-4 py-1.5 text-xs text-white"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

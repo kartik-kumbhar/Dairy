@@ -1,39 +1,6 @@
 import Milk from "../models/Milk.js";
 
 /* ================= TODAY ================= */
-// export const getTodayDashboardStats = async (req, res) => {
-//   try {
-//     const today = new Date().toISOString().slice(0, 10);
-
-//     const collections = await Milk.find({ date: today });
-
-//     let totalLiters = 0;
-//     let cowLiters = 0;
-//     let buffaloLiters = 0;
-//     let amountToday = 0;
-
-//     const farmerSet = new Set();
-
-//     collections.forEach((c) => {
-//       totalLiters += c.quantity;
-//       amountToday += c.totalAmount;
-//       farmerSet.add(c.farmerId.toString());
-
-//       // ⚠ You DO NOT store milkType in Milk collection
-//       // So we cannot split cow/buffalo here
-//     });
-
-//     res.json({
-//       totalLiters,
-//       cowLiters,       // will be 0 unless you store milkType
-//       buffaloLiters,   // will be 0 unless you store milkType
-//       farmersToday: farmerSet.size,
-//       amountToday,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 export const getTodayDashboardStats = async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -43,6 +10,7 @@ export const getTodayDashboardStats = async (req, res) => {
     let totalLiters = 0;
     let cowLiters = 0;
     let buffaloLiters = 0;
+    let mixLiters = 0;
     let amountToday = 0;
 
     const farmerSet = new Set();
@@ -54,12 +22,14 @@ export const getTodayDashboardStats = async (req, res) => {
 
       if (c.milkType === "cow") cowLiters += c.quantity;
       if (c.milkType === "buffalo") buffaloLiters += c.quantity;
+      if (c.milkType === "mix") mixLiters += c.quantity;
     });
 
     res.json({
       totalLiters,
       cowLiters,
       buffaloLiters,
+      mixLiters,
       farmersToday: farmerSet.size,
       amountToday,
     });
@@ -69,35 +39,6 @@ export const getTodayDashboardStats = async (req, res) => {
 };
 
 /* ================= MONTH ================= */
-// export const getMonthlyDashboardStats = async (req, res) => {
-//   try {
-//     const now = new Date();
-//     const start = new Date(now.getFullYear(), now.getMonth(), 1)
-//       .toISOString()
-//       .slice(0, 10);
-
-//     const collections = await Milk.find({
-//       date: { $gte: start },
-//     });
-
-//     let totalLiters = 0;
-//     let amount = 0;
-
-//     collections.forEach((c) => {
-//       totalLiters += c.quantity;
-//       amount += c.totalAmount;
-//     });
-
-//     res.json({
-//       totalLiters,
-//       amount,
-//       cowPercent: 0,      // ❌ not possible without milkType
-//       buffaloPercent: 0,  // ❌ not possible without milkType
-//     });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 export const getMonthlyDashboardStats = async (req, res) => {
   try {
     const now = new Date();
@@ -110,6 +51,8 @@ export const getMonthlyDashboardStats = async (req, res) => {
     let totalLiters = 0;
     let cowLiters = 0;
     let buffaloLiters = 0;
+    let mixLiters = 0;
+
     let amount = 0;
 
     collections.forEach((c) => {
@@ -118,6 +61,7 @@ export const getMonthlyDashboardStats = async (req, res) => {
 
       if (c.milkType === "cow") cowLiters += c.quantity;
       if (c.milkType === "buffalo") buffaloLiters += c.quantity;
+      if (c.milkType === "mix") mixLiters += c.quantity;
     });
 
     res.json({
@@ -127,6 +71,7 @@ export const getMonthlyDashboardStats = async (req, res) => {
       buffaloPercent: totalLiters
         ? Math.round((buffaloLiters / totalLiters) * 100)
         : 0,
+      mixPercent: totalLiters ? Math.round((mixLiters / totalLiters) * 100) : 0,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

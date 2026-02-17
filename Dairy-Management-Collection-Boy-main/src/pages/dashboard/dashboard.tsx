@@ -13,6 +13,7 @@ type TodayStats = {
   totalLiters: number | null;
   cowLiters: number | null;
   buffaloLiters: number | null;
+  mixLiters: number | null;
   farmersToday: number | null;
   amountToday: number | null;
 };
@@ -22,6 +23,7 @@ type MonthStats = {
   amount: number | null;
   cowPercent: number | null;
   buffaloPercent: number | null;
+  mixPercent: number | null;
 };
 
 type TopFarmer = {
@@ -38,6 +40,7 @@ const DashboardPage: React.FC = () => {
     totalLiters: 0,
     cowLiters: 0,
     buffaloLiters: 0,
+    mixLiters: 0,
     farmersToday: 0,
     amountToday: 0,
   });
@@ -47,6 +50,7 @@ const DashboardPage: React.FC = () => {
     amount: 0,
     cowPercent: 0,
     buffaloPercent: 0,
+    mixPercent: 0,
   });
 
   const [topFarmers, setTopFarmers] = useState<TopFarmer[]>([]);
@@ -134,7 +138,7 @@ const DashboardPage: React.FC = () => {
             title="Milk Type Ratio"
             value={`${monthStats.cowPercent ?? 0}% Cow / ${
               monthStats.buffaloPercent ?? 0
-            }% Buffalo`}
+            }% Buffalo / ${monthStats.mixPercent ?? 0}% Mix`}
             subtitle="Share of monthly liters"
             variant="green"
           />
@@ -147,7 +151,7 @@ const DashboardPage: React.FC = () => {
               Today's Milk Breakdown
             </h2>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {/* Cow */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
                 <p className="text-2xl font-bold">
@@ -162,6 +166,14 @@ const DashboardPage: React.FC = () => {
                   {(todayStats.buffaloLiters ?? 0).toLocaleString()} L
                 </p>
                 <span className="text-3xl">🐃</span>
+              </div>
+
+              {/* Mix */}
+              <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
+                <p className="text-2xl font-bold">
+                  {(todayStats.mixLiters ?? 0).toLocaleString()} L
+                </p>
+                <span className="text-3xl">🥛</span>
               </div>
             </div>
           </div>

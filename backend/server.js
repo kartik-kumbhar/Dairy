@@ -21,13 +21,6 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// app.use(
-//   cors({
-//     origin: "https://dairy-eo1r.vercel.app",
-//     credentials: true,
-//   }),
-// );
-
 app.use(
   cors({
     origin: (origin, callback) => {

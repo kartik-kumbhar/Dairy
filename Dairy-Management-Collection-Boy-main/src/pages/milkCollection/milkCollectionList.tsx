@@ -88,15 +88,17 @@ const MilkCollectionListPage: React.FC = () => {
     let totalAmount = 0;
     let cowLiters = 0;
     let buffaloLiters = 0;
+    let mixLiters = 0;
 
     filteredCollections.forEach((c) => {
       totalLiters += c.liters;
       totalAmount += c.amount;
       if (c.milkType === "cow") cowLiters += c.liters;
       if (c.milkType === "buffalo") buffaloLiters += c.liters;
+      if (c.milkType === "mix") mixLiters += c.liters;
     });
 
-    return { totalLiters, totalAmount, cowLiters, buffaloLiters };
+    return { totalLiters, totalAmount, cowLiters, buffaloLiters, mixLiters };
   }, [filteredCollections]);
 
   const handleDelete = async () => {
@@ -149,10 +151,14 @@ const MilkCollectionListPage: React.FC = () => {
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
             row.milkType === "cow"
               ? "bg-[#E76F51]/10 text-[#E76F51]"
-              : "bg-[#457B9D]/10 text-[#457B9D]"
+              : row.milkType === "buffalo"
+                ? "bg-[#457B9D]/10 text-[#457B9D]"
+                : "bg-purple-100 text-purple-700"
           }`}
         >
-          {row.milkType === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
+          {row.milkType === "cow" && "🐄 Cow"}
+          {row.milkType === "buffalo" && "🐃 Buffalo"}
+          {row.milkType === "mix" && "🥛 Mix"}
         </span>
       ),
     },
@@ -226,7 +232,7 @@ const MilkCollectionListPage: React.FC = () => {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard
             title="Total Liters"
             value={totals.totalLiters.toFixed(2)}
@@ -245,6 +251,13 @@ const MilkCollectionListPage: React.FC = () => {
             subtitle="Within current filter"
             variant="blue"
           />
+          <StatCard
+            title="Mix Milk (L)"
+            value={totals.mixLiters.toFixed(2)}
+            subtitle="Within current filter"
+            variant="purple"
+          />
+
           <StatCard
             title="Total Amount (₹)"
             value={totals.totalAmount.toFixed(2)}
@@ -327,13 +340,14 @@ const MilkCollectionListPage: React.FC = () => {
               }
               // options={[
               //   { label: "All Types", value: "All" },
-              //   { label: "Cow", value: "Cow" },
-              //   { label: "Buffalo", value: "Buffalo" },
+              //   { label: "Cow", value: "cow" },
+              //   { label: "Buffalo", value: "buffalo" },
               // ]}
               options={[
                 { label: "All Types", value: "All" },
                 { label: "Cow", value: "cow" },
                 { label: "Buffalo", value: "buffalo" },
+                { label: "Mix", value: "mix" },
               ]}
               containerClassName="w-36"
             />

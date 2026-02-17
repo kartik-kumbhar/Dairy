@@ -120,11 +120,16 @@ const MilkEntryPage: React.FC = () => {
       try {
         setLoadingRate(true);
 
+        const roundToStep = (value: number, step: number) =>
+          +(Math.round(value / step) * step).toFixed(1);
+
+        const fatRounded = roundToStep(Number(fat), 0.1);
+        const snfRounded = roundToStep(Number(snf), 0.1);
+
         const res = await getRateForMilk({
-          // milkType: selectedFarmer.milkType,
           milkType,
-          fat: Number(fat),
-          snf: Number(snf),
+          fat: fatRounded,
+          snf: snfRounded,
           date,
         });
 
@@ -231,15 +236,17 @@ const MilkEntryPage: React.FC = () => {
     const result = {
       cow: { Morning: 0, Evening: 0 },
       buffalo: { Morning: 0, Evening: 0 },
+      mix: { Morning: 0, Evening: 0 },
     };
 
     filteredCollections.forEach((c) => {
-      if (c.milkType === "cow") {
-        result.cow[c.shift] += c.liters;
-      }
-      if (c.milkType === "buffalo") {
-        result.buffalo[c.shift] += c.liters;
-      }
+      // if (c.milkType === "cow") {
+      //   result.cow[c.shift] += c.liters;
+      // }
+      // if (c.milkType === "buffalo") {
+      //   result.buffalo[c.shift] += c.liters;
+      // }
+      result[c.milkType][c.shift] += c.liters;
     });
 
     return result;
@@ -258,16 +265,12 @@ const MilkEntryPage: React.FC = () => {
     };
   };
 
-  // const cowMorningContainers = generateContainers(totals.cow.Morning);
-  // const cowEveningContainers = generateContainers(totals.cow.Evening);
-
-  // const buffaloMorningContainers = generateContainers(totals.buffalo.Morning);
-  // const buffaloEveningContainers = generateContainers(totals.buffalo.Evening);
-
   const cowMorning = generateContainers(totals.cow.Morning);
   const cowEvening = generateContainers(totals.cow.Evening);
   const buffaloMorning = generateContainers(totals.buffalo.Morning);
   const buffaloEvening = generateContainers(totals.buffalo.Evening);
+  const mixMorning = generateContainers(totals.mix.Morning);
+  const mixEvening = generateContainers(totals.mix.Evening);
 
   // ---------- UI derived ----------
   const farmerCode = selectedFarmer?.code ?? "";
@@ -385,7 +388,10 @@ const MilkEntryPage: React.FC = () => {
                             : "border-[#E9E2C8] text-[#5E503F]"
                         }`}
                       >
-                        {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"}
+                        {/* {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"} */}
+                        {t === "cow" && "🐄 Cow Milk"}
+                        {t === "buffalo" && "🐃 Buffalo Milk"}
+                        {t === "mix" && "🥛 Mix Milk"}
                       </button>
                     ))}
                   </div>
@@ -484,17 +490,19 @@ const MilkEntryPage: React.FC = () => {
             Milk Can Platform (40L each)
           </h2>
 
+          {/* <div className="overflow-x-auto pb-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 min-w-[600px] lg:min-w-0"> */}
           <div className="overflow-x-auto pb-2">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 min-w-[600px] lg:min-w-0">
+            <div className="grid grid-cols-6 gap-6 min-w-[900px] w-full text-center">
               {/* Cow Morning */}
-              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8]">
+              <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#E76F51]">
                   🐄 Cow Morning
                 </div>
 
                 {/* Full count badge */}
 
-                <div className="flex items-end gap-6 min-h-[150px]">
+                <div className="flex items-end justify-center gap-4 h-[150px]">
                   {/* FULL CAN */}
                   {cowMorning.fullCount > 0 && (
                     <MilkContainer
@@ -528,13 +536,15 @@ const MilkEntryPage: React.FC = () => {
               </div>
 
               {/* Cow Evening */}
-              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#F4A261]">
+              {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#F4A261]"> */}
+              <div className="flex flex-col items-center w-full">
+                <div className=" text-xs font-semibold text-[#E76F51]">
                   🐄 Cow Evening
                 </div>
 
                 {/* Full count badge */}
-                <div className="flex items-end gap-6 min-h-[150px]">
+                <div className="flex items-end justify-center gap-4 h-[150px]">
                   {cowEvening.fullCount > 0 && (
                     <MilkContainer
                       filledLiters={40}
@@ -565,12 +575,14 @@ const MilkEntryPage: React.FC = () => {
               </div>
 
               {/* Buffalo Morning */}
-              <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#457B9D]">
+              {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#457B9D]"> */}
+              <div className="flex flex-col items-center w-full">
+                <div className=" text-xs font-semibold text-[#E76F51]">
                   🐃 Buffalo Morning
                 </div>
 
-                <div className="flex items-end gap-6 min-h-[150px]">
+                <div className="flex items-end justify-center gap-4 h-[150px]">
                   {buffaloMorning.fullCount > 0 && (
                     <MilkContainer
                       filledLiters={40}
@@ -601,13 +613,15 @@ const MilkEntryPage: React.FC = () => {
               </div>
 
               {/* Buffalo Evening */}
-              <div className="flex flex-col items-center px-6 min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#1D3557]">
+              {/* <div className="flex flex-col items-center px-6 min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#1D3557]"> */}
+              <div className="flex flex-col items-center w-full">
+                <div className=" text-xs font-semibold text-[#E76F51]">
                   🐃 Buffalo Evening
                 </div>
 
                 {/* Full count badge */}
-                <div className="flex items-end gap-6 min-h-[150px]">
+                <div className="flex items-end justify-center gap-4 h-[150px]">
                   {buffaloEvening.fullCount > 0 && (
                     <MilkContainer
                       filledLiters={40}
@@ -626,6 +640,83 @@ const MilkEntryPage: React.FC = () => {
 
                   {buffaloEvening.fullCount === 0 &&
                     buffaloEvening.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#1D3557"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+
+              {/* mix Morning */}
+              {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#457B9D]"> */}
+              <div className="flex flex-col items-center w-full">
+                <div className=" text-xs font-semibold text-[#457B9D]">
+                  🥛 Mix Morning
+                </div>
+
+                <div className="flex items-end justify-center gap-4 h-[150px]">
+                  {mixMorning.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#457B9D"
+                      label={`${mixMorning.fullCount} cans`}
+                    />
+                  )}
+
+                  {mixMorning.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={mixMorning.runningLiters}
+                      color="#457B9D"
+                      label={`${mixMorning.runningLiters} L`}
+                    />
+                  )}
+
+                  {mixMorning.fullCount === 0 &&
+                    mixMorning.runningLiters === 0 && (
+                      <MilkContainer
+                        filledLiters={0}
+                        color="#457B9D"
+                        label="0"
+                      />
+                    )}
+                </div>
+
+                <div className="mt-3 w-full h-[3px] bg-[#DCCFC0] rounded-full" />
+              </div>
+
+              {/* mix Evening */}
+              {/* <div className="flex flex-col items-center px-6 min-w-[260px]">
+                <div className=" text-xs font-semibold text-[#1D3557]"> */}
+              <div className="flex flex-col items-center w-full">
+                <div className=" text-xs font-semibold text-[#1D3557]">
+                  🥛 Mix Evening
+                </div>
+
+                {/* Full count badge */}
+                <div className="flex items-end justify-center gap-4 h-[150px]">
+                  {mixEvening.fullCount > 0 && (
+                    <MilkContainer
+                      filledLiters={40}
+                      color="#1D3557"
+                      label={`${mixEvening.fullCount} cans`}
+                    />
+                  )}
+
+                  {mixEvening.runningLiters > 0 && (
+                    <MilkContainer
+                      filledLiters={mixEvening.runningLiters}
+                      color="#1D3557"
+                      label={`${mixEvening.runningLiters} L`}
+                    />
+                  )}
+
+                  {mixEvening.fullCount === 0 &&
+                    mixEvening.runningLiters === 0 && (
                       <MilkContainer
                         filledLiters={0}
                         color="#1D3557"
@@ -785,10 +876,14 @@ const MilkEntryPage: React.FC = () => {
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
                             c.milkType === "cow"
                               ? "bg-[#E76F51]/10 text-[#E76F51]"
-                              : "bg-[#457B9D]/10 text-[#457B9D]"
+                              : c.milkType === "buffalo"
+                                ? "bg-[#457B9D]/10 text-[#457B9D]"
+                                : "bg-[#8E44AD]/10 text-[#8E44AD]"
                           }`}
                         >
-                          {c.milkType === "cow" ? "🐄 Cow" : "🐃 Buffalo"}
+                          {c.milkType === "cow" && "🐄 Cow"}
+                          {c.milkType === "buffalo" && "🐃 Buffalo"}
+                          {c.milkType === "mix" && "🥛 Mix"}
                         </span>
                       </td>
                       <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">
