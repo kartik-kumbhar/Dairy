@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import InputField from "../../components/inputField";
-import type { MilkType } from "../../types/farmer";
+import type { MilkType, MilkTypeUI } from "../../types/farmer";
 import { ROUTES } from "../../constants/routes";
 import { useFarmerContext } from "../../context/FarmerContext";
 import toast from "react-hot-toast";
@@ -14,7 +14,7 @@ const AddFarmerPage: React.FC = () => {
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
-  // const [milkType, setMilkType] = useState<MilkType>("cow");
+
   const [milkType, setMilkType] = useState<MilkType[]>(["cow"]);
 
   const [address, setAddress] = useState("");
@@ -81,10 +81,30 @@ const AddFarmerPage: React.FC = () => {
     setErrors({});
   };
 
-  const toggleMilkType = (type: MilkType) => {
-    setMilkType((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
-    );
+  const toggleMilkType = (type: MilkTypeUI) => {
+    setMilkType((prev) => {
+      // BOTH selected
+      if (type === "both") {
+        if (prev.includes("cow") && prev.includes("buffalo")) return [];
+        return ["cow", "buffalo"];
+      }
+
+      // MIX behaves separate
+      if (type === "mix") {
+        if (prev.includes("mix")) return prev.filter((t) => t !== "mix");
+        return ["mix"];
+      }
+
+      // cow/buffalo toggle
+      let updated = prev.includes(type)
+        ? prev.filter((t) => t !== type)
+        : [...prev, type];
+
+      // remove mix if cow/buffalo selected
+      updated = updated.filter((t) => t !== "mix");
+
+      return updated;
+    });
   };
 
   return (
@@ -156,27 +176,33 @@ const AddFarmerPage: React.FC = () => {
                   Milk Type <span className="text-red-500">*</span>
                 </span>
                 <div className="mt-1 flex gap-3">
-                  {(["cow", "buffalo", "mix"] as MilkType[]).map((t) => {
-                    const active = milkType.includes(t);
+                  {(["cow", "buffalo", "both", "mix"] as MilkTypeUI[]).map(
+                    (t) => {
+                      const active =
+                        t === "both"
+                          ? milkType.includes("cow") &&
+                            milkType.includes("buffalo")
+                          : milkType.includes(t as MilkType);
 
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => toggleMilkType(t)}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
-                          active
-                            ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
-                            : "border-[#E9E2C8] text-[#5E503F]"
-                        }`}
-                      >
-                        {/* {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"} */}
-                        {t === "cow" && "🐄 Cow Milk"}
-                        {t === "buffalo" && "🐃 Buffalo Milk"}
-                        {t === "mix" && "🥛 Mix Milk"}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => toggleMilkType(t)}
+                          className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium ${
+                            active
+                              ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                              : "border-[#E9E2C8] text-[#5E503F]"
+                          }`}
+                        >
+                          {t === "cow" && "🐄 Cow"}
+                          {t === "buffalo" && "🐃 Buffalo"}
+                          {t === "both" && "🐄🐃 Both"}
+                          {t === "mix" && "🥛 Mix"}
+                        </button>
+                      );
+                    },
+                  )}
                 </div>
               </div>
             </div>

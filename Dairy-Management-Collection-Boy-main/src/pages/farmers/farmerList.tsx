@@ -1,7 +1,7 @@
 // src/pages/farmers/farmerList.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { MilkType, FarmerStatus } from "../../types/farmer";
+import type { MilkType, FarmerStatus, MilkTypeUI } from "../../types/farmer";
 import type { Farmer } from "../../types/farmer";
 
 import InputField from "../../components/inputField";
@@ -92,10 +92,26 @@ const FarmerListPage: React.FC = () => {
     setEditAddress(farmer.address ?? "");
   };
 
-  const toggleEditMilkType = (type: MilkType) => {
-    setEditMilkType((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
-    );
+  const toggleEditMilkType = (type: MilkTypeUI) => {
+    setEditMilkType((prev) => {
+      if (type === "both") {
+        if (prev.includes("cow") && prev.includes("buffalo")) return [];
+        return ["cow", "buffalo"];
+      }
+
+      if (type === "mix") {
+        if (prev.includes("mix")) return prev.filter((t) => t !== "mix");
+        return ["mix"];
+      }
+
+      let updated = prev.includes(type as MilkType)
+        ? prev.filter((t) => t !== type)
+        : [...prev, type as MilkType];
+
+      updated = updated.filter((t) => t !== "mix");
+
+      return updated;
+    });
   };
 
   const saveEditFarmer = async () => {
@@ -434,22 +450,33 @@ const FarmerListPage: React.FC = () => {
                   Milk Type
                 </label>
                 <div className="mt-2 flex gap-2">
-                  {(["cow", "buffalo", "mix"] as MilkType[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => toggleEditMilkType(t)}
-                      className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                        editMilkType.includes(t)
-                          ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
-                          : "border-[#E9E2C8]"
-                      }`}
-                    >
-                      {t === "cow" && "🐄 Cow"}
-                      {t === "buffalo" && "🐃 Buffalo"}
-                      {t === "mix" && "🥛 Mix"}
-                    </button>
-                  ))}
+                  {(["cow", "buffalo", "both", "mix"] as MilkTypeUI[]).map(
+                    (t) => {
+                      const active =
+                        t === "both"
+                          ? editMilkType.includes("cow") &&
+                            editMilkType.includes("buffalo")
+                          : editMilkType.includes(t as MilkType);
+
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => toggleEditMilkType(t)}
+                          className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                            active
+                              ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                              : "border-[#E9E2C8]"
+                          }`}
+                        >
+                          {t === "cow" && "🐄 Cow"}
+                          {t === "buffalo" && "🐃 Buffalo"}
+                          {t === "both" && "🐄 Both 🐃"}
+                          {t === "mix" && "🥛 Mix"}
+                        </button>
+                      );
+                    },
+                  )}
                 </div>
               </div>
 

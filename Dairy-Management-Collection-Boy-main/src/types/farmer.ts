@@ -1,6 +1,8 @@
 export type MilkType = "cow" | "buffalo" | "mix";
 export type FarmerMilkType = MilkType[];
 
+export type MilkTypeUI = MilkType | "both";
+
 export type FarmerStatus = "Active" | "Inactive";
 
 export interface Farmer {
