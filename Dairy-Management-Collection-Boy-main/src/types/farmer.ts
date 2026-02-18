@@ -22,3 +22,11 @@ export interface AddFarmerRequest {
   milkType: FarmerMilkType;
   address?: string;
 }
+
+export interface UpdateFarmerRequest {
+  name?: string;
+  mobile?: string;
+  milkType?: MilkType[];
+  address?: string;
+  status?: FarmerStatus;
+}

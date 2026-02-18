@@ -57,12 +57,13 @@ export function DataTable<T>({
   return (
     <div
       className={clsx(
-        "overflow-hidden rounded-lg border border-[#E9E2C8] bg-white shadow-sm",
+        "rounded-lg border border-[#E9E2C8] bg-white shadow-sm",
         className,
       )}
     >
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+      {/* ================= DESKTOP TABLE VIEW ================= */}
+<div className="w-full overflow-x-auto scroll-smooth">
+<table className="min-w-[1100px] text-sm">
           <thead className="bg-[#F8F4E3]">
             <tr>
               {columns.map((col) => (
@@ -80,14 +81,15 @@ export function DataTable<T>({
               ))}
             </tr>
           </thead>
+
           <tbody>
             {loading ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className={clsx(cellPadding, "text-center text-[#5E503F]/70")}
+                  className={clsx(cellPadding, "text-center")}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2 text-[#5E503F]/70">
                     <Loader size="sm" />
                     <span className="text-xs">Loading...</span>
                   </div>
@@ -113,9 +115,7 @@ export function DataTable<T>({
                     striped && rowIndex % 2 === 1 ? "bg-[#FDFCF8]" : "bg-white",
                     onRowClick && "cursor-pointer hover:bg-[#F8F4E3]/70",
                   )}
-                  onClick={() => {
-                    if (onRowClick) onRowClick(row);
-                  }}
+                  onClick={() => onRowClick?.(row)}
                 >
                   {columns.map((col) => {
                     const content =

@@ -1,5 +1,5 @@
 import { api } from "./axiosInstance";
-import type { Farmer, AddFarmerRequest } from "../types/farmer";
+import type { Farmer, AddFarmerRequest, UpdateFarmerRequest } from "../types/farmer";
 
 export const addFarmer = (data: AddFarmerRequest) =>
   api.post<Farmer>("/farmers", data);
@@ -10,5 +10,5 @@ export const getFarmers = () =>
 export const deleteFarmer = (id: string) =>
   api.delete<{ message: string }>(`/farmers/${id}`);
 
-export const updateFarmer = (id: string, data: AddFarmerRequest) =>
+export const updateFarmer = (id: string, data: UpdateFarmerRequest) =>
   api.put<Farmer>(`/farmers/${id}`, data);

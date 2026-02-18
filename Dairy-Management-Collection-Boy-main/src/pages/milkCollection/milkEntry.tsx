@@ -1,5 +1,5 @@
 // src/pages/milkCollection/milkEntry.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import InputField from "../../components/inputField";
 import Loader from "../../components/loader";
@@ -35,6 +35,8 @@ const MilkEntryPage: React.FC = () => {
     [today],
   );
 
+  const farmerDropdownRef = useRef<HTMLDivElement | null>(null);
+
   // Farmers
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [loadingFarmers, setLoadingFarmers] = useState(true);
@@ -53,6 +55,7 @@ const MilkEntryPage: React.FC = () => {
   const [loadingRate, setLoadingRate] = useState(false);
   const [milkType, setMilkType] = useState<MilkType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MilkCollection | null>(null);
+  const [isTypingFarmer, setIsTypingFarmer] = useState(false);
 
   const [remarks, setRemarks] = useState<string>("");
 
@@ -70,11 +73,33 @@ const MilkEntryPage: React.FC = () => {
   const [filterMode, setFilterMode] = useState<DateFilterMode>("day");
   const [filterDate, setFilterDate] = useState<string>(todayISO);
   const [filterMonth, setFilterMonth] = useState<string>(todayMonth);
+  const [farmerSearch, setFarmerSearch] = useState("");
+  const [showFarmerDropdown, setShowFarmerDropdown] = useState(false);
 
   const selectedFarmer = useMemo(
     () => farmers.find((f) => f._id === farmerId),
     [farmers, farmerId],
   );
+
+  const activeFarmers = useMemo(
+    () => farmers.filter((f) => f.status === "Active"),
+    [farmers],
+  );
+
+  const filteredFarmers = useMemo(() => {
+    const list = activeFarmers;
+
+    if (!farmerSearch) return list.slice(0, 25);
+
+    const q = farmerSearch.toLowerCase();
+
+    return list
+      .filter(
+        (f) =>
+          f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q),
+      )
+      .slice(0, 25);
+  }, [activeFarmers, farmerSearch]);
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +128,14 @@ const MilkEntryPage: React.FC = () => {
     if (selectedFarmer.milkType.length === 1) {
       setMilkType(selectedFarmer.milkType[0]);
     } else {
+      setMilkType(null);
+    }
+  }, [selectedFarmer]);
+
+  useEffect(() => {
+    if (selectedFarmer && selectedFarmer.status !== "Active") {
+      toast.error("Selected farmer is inactive");
+      setFarmerId("");
       setMilkType(null);
     }
   }, [selectedFarmer]);
@@ -147,6 +180,11 @@ const MilkEntryPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!validate() || !selectedFarmer) return;
+
+    if (selectedFarmer.status !== "Active") {
+      toast.error("Cannot add milk collection for inactive farmer");
+      return;
+    }
     if (!milkType) {
       toast.error("Please select milk type");
       return false;
@@ -240,12 +278,6 @@ const MilkEntryPage: React.FC = () => {
     };
 
     filteredCollections.forEach((c) => {
-      // if (c.milkType === "cow") {
-      //   result.cow[c.shift] += c.liters;
-      // }
-      // if (c.milkType === "buffalo") {
-      //   result.buffalo[c.shift] += c.liters;
-      // }
       result[c.milkType][c.shift] += c.liters;
     });
 
@@ -275,10 +307,10 @@ const MilkEntryPage: React.FC = () => {
   // ---------- UI derived ----------
   const farmerCode = selectedFarmer?.code ?? "";
 
-  const farmerOptions = farmers.map((f) => ({
-    label: `${f.code} - ${f.name}`,
-    value: f._id,
-  }));
+  // const farmerOptions = farmers.map((f) => ({
+  //   label: `${f.code} - ${f.name}`,
+  //   value: f._id,
+  // }));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -295,6 +327,20 @@ const MilkEntryPage: React.FC = () => {
       toast.error("Failed to delete milk entry");
     }
   };
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (!farmerDropdownRef.current) return;
+
+      if (!farmerDropdownRef.current.contains(e.target as Node)) {
+        setShowFarmerDropdown(false);
+        setIsTypingFarmer(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   return (
     <div className="h-full w-full overflow-y-auto bg-[#F8F4E3] p-4 sm:p-5 lg:p-6">
@@ -348,7 +394,7 @@ const MilkEntryPage: React.FC = () => {
                   <label className="text-xs font-medium text-[#5E503F]">
                     Farmer<span className="text-red-500">*</span>
                   </label>
-                  <select
+                  {/* <select
                     value={farmerId}
                     onChange={(e) => setFarmerId(e.target.value)}
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F] ${
@@ -361,7 +407,70 @@ const MilkEntryPage: React.FC = () => {
                         {opt.label}
                       </option>
                     ))}
-                  </select>
+                  </select> */}
+
+                  <div className="relative" ref={farmerDropdownRef}>
+                    <input
+                      type="text"
+                      placeholder="Select or Search farmer name or code..."
+                      value={
+                        isTypingFarmer
+                          ? farmerSearch
+                          : selectedFarmer
+                            ? `${selectedFarmer.code} - ${selectedFarmer.name}`
+                            : farmerSearch
+                      }
+                      onFocus={() => {
+                        setShowFarmerDropdown(true);
+                        setIsTypingFarmer(true);
+                        setFarmerSearch(selectedFarmer?.code ?? "");
+                      }}
+                      onChange={(e) => {
+                        setFarmerSearch(e.target.value);
+                        setShowFarmerDropdown(true);
+                      }}
+                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F] ${
+                        errors.farmerId ? "border-red-500" : "border-[#E9E2C8]"
+                      }`}
+                    />
+
+                    {showFarmerDropdown && (
+                      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-[#E9E2C8] bg-white shadow-lg">
+                        {filteredFarmers.length === 0 ? (
+                          <div className="px-3 py-2 text-xs text-[#5E503F]/60">
+                            No farmers found
+                          </div>
+                        ) : (
+                          filteredFarmers.map((f) => (
+                            <button
+                              key={f._id}
+                              type="button"
+                              onClick={() => {
+                                setFarmerId(f._id);
+                                setFarmerSearch("");
+                                setShowFarmerDropdown(false);
+                                setIsTypingFarmer(false);
+                              }}
+                              className="block w-full px-3 py-2 text-left text-sm hover:bg-[#F8F4E3]"
+                            >
+                              <span className="font-medium">{f.code}</span>
+                              <span className="text-[#5E503F]/70">
+                                {" "}
+                                — {f.name}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {errors.farmerId && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.farmerId}
+                      </p>
+                    )}
+                  </div>
+
                   {errors.farmerId && (
                     <p className="mt-1 text-xs text-red-600">
                       {errors.farmerId}
@@ -388,7 +497,6 @@ const MilkEntryPage: React.FC = () => {
                             : "border-[#E9E2C8] text-[#5E503F]"
                         }`}
                       >
-                        {/* {t === "cow" ? "🐄 Cow Milk" : "🐃 Buffalo Milk"} */}
                         {t === "cow" && "🐄 Cow Milk"}
                         {t === "buffalo" && "🐃 Buffalo Milk"}
                         {t === "mix" && "🥛 Mix Milk"}
@@ -881,9 +989,10 @@ const MilkEntryPage: React.FC = () => {
                                 : "bg-[#8E44AD]/10 text-[#8E44AD]"
                           }`}
                         >
-                          {c.milkType === "cow" && "🐄 Cow"}
-                          {c.milkType === "buffalo" && "🐃 Buffalo"}
-                          {c.milkType === "mix" && "🥛 Mix"}
+                          {/* {c.milkType === "cow" && "🐄 Cow"} */}
+                          {c.milkType === "cow" && "Cow"}
+                          {c.milkType === "buffalo" && "Buffalo"}
+                          {c.milkType === "mix" && "Mix"}
                         </span>
                       </td>
                       <td className="border-t border-[#E9E2C8] px-3 py-2 text-center">

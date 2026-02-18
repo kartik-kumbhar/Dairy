@@ -46,7 +46,7 @@ const FarmerListPage: React.FC = () => {
     const mix = allFarmers.filter((f) => f.milkType.includes("mix")).length;
 
     const active = allFarmers.filter((f) => f.status === "Active").length;
-    const inactive = total - active;
+    const inactive = allFarmers.filter((f) => f.status === "Inactive").length;
 
     return { total, cow, buffalo, mix, active, inactive };
   }, [allFarmers]);
@@ -134,6 +134,20 @@ const FarmerListPage: React.FC = () => {
       toast.success("Farmer updated successfully");
     } catch {
       toast.error("Failed to update farmer");
+    }
+  };
+
+  // Active - Inactive
+  const toggleStatus = async (farmer: Farmer) => {
+    try {
+      const newStatus = farmer.status === "Active" ? "Inactive" : "Active";
+
+      await updateFarmer(farmer._id, { status: newStatus });
+
+      toast.success(`Farmer marked ${newStatus}`);
+      reloadFarmers();
+    } catch {
+      toast.error("Failed to update status");
     }
   };
 
@@ -276,120 +290,123 @@ const FarmerListPage: React.FC = () => {
         </div>
 
         {/* Table – simple and perfectly aligned */}
-        <div className="overflow-hidden rounded-xl border border-[#E9E2C8] bg-white shadow-sm">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-[#F8F4E3]">
-              <tr>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Code
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Name
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Mobile
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Milk Type
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Status
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Join Date
-                </th>
-                <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFarmers.length === 0 ? (
+        <div className="rounded-xl border border-[#E9E2C8] bg-white shadow-sm">
+          <div className="w-full overflow-x-auto scroll-smooth">
+            <table className="min-w-[900px] border-collapse text-sm">
+              <thead className="bg-[#F8F4E3]">
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-6 text-center text-xs text-[#5E503F]/60"
-                  >
-                    No farmers found. Click &quot;Add Farmer&quot; to create
-                    one.
-                  </td>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Code
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Name
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Mobile
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Milk Type
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Status
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Join Date
+                  </th>
+                  <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
+                    Actions
+                  </th>
                 </tr>
-              ) : (
-                filteredFarmers.map((f, index) => (
-                  <tr
-                    key={f._id}
-                    className={index % 2 === 0 ? "bg-white" : "bg-[#FDFCF8]"}
-                  >
-                    <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <span className="inline-flex items-center rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]">
-                        {f.code}
-                      </span>
-                    </td>
-                    <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
-                      {f.name}
-                    </td>
-                    <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
-                      {f.mobile}
-                    </td>
-                    <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        {f.milkType.map((type) => (
-                          <span
-                            key={type}
-                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-                              type === "cow"
-                                ? "bg-[#E76F51]/10 text-[#E76F51]"
-                                : type === "buffalo"
-                                  ? "bg-[#457B9D]/10 text-[#457B9D]"
-                                  : "bg-purple-100 text-purple-700"
-                            }`}
-                          >
-                            {type === "cow" && "🐄 Cow"}
-                            {type === "buffalo" && "🐃 Buffalo"}
-                            {type === "mix" && "🥛 Mix"}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-
-                    <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-                          f.status === "Active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {f.status}
-                      </span>
-                    </td>
-                    <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
-                      {f.joinDate}
-                    </td>
-                    <td className="border-t border-[#E9E2C8] px-4 py-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(f)}
-                          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(f)}
-                          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
-                        >
-                          Delete
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {filteredFarmers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-6 text-center text-xs text-[#5E503F]/60"
+                    >
+                      No farmers found. Click &quot;Add Farmer&quot; to create
+                      one.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredFarmers.map((f, index) => (
+                    <tr
+                      key={f._id}
+                      className={index % 2 === 0 ? "bg-white" : "bg-[#FDFCF8]"}
+                    >
+                      <td className="border-t border-[#E9E2C8] px-4 py-2">
+                        <span className="inline-flex items-center rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]">
+                          {f.code}
+                        </span>
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
+                        {f.name}
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
+                        {f.mobile}
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          {f.milkType.map((type) => (
+                            <span
+                              key={type}
+                              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
+                                type === "cow"
+                                  ? "bg-[#E76F51]/10 text-[#E76F51]"
+                                  : type === "buffalo"
+                                    ? "bg-[#457B9D]/10 text-[#457B9D]"
+                                    : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
+                              {type === "cow" && "Cow"}
+                              {type === "buffalo" && "Buffalo"}
+                              {type === "mix" && "Mix"}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      <td className="border-t border-[#E9E2C8] px-4 py-2">
+                        <button
+                          onClick={() => toggleStatus(f)}
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition ${
+                            f.status === "Active"
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : "bg-red-100 text-red-700 hover:bg-red-200"
+                          }`}
+                        >
+                          {f.status}
+                        </button>
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-4 py-2 text-[#5E503F]">
+                        {f.joinDate}
+                      </td>
+                      <td className="border-t border-[#E9E2C8] px-4 py-2">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(f)}
+                            className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(f)}
+                            className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -411,7 +428,7 @@ const FarmerListPage: React.FC = () => {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={handleDelete}
-        onCancel={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
 
       {/* Edit modal */}

@@ -504,10 +504,10 @@ Thank you.
   };
 
   return (
-    <div className="w-full min-w-0 bg-[#F8F4E3] p-6">
+    <div className="w-full min-w-0 bg-[#F8F4E3] p-3 sm:p-4 md:p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#5E503F]">
               Bill Management
@@ -549,7 +549,7 @@ Thank you.
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="text-xs font-medium text-[#5E503F]">
                 Bill Scope
@@ -627,8 +627,7 @@ Thank you.
               </div>
             ) : (
               <>
-                <div className="w-full overflow-x-auto">
-                  <div className="min-w-[900px]">
+                <div className="w-full overflow-x-auto scroll-smooth">
                     <DataTable
                       data={calculatedRows}
                       columns={previewColumns}
@@ -636,7 +635,6 @@ Thank you.
                       striped
                       dense
                     />
-                  </div>
                 </div>
 
                 {/* ////////////////////////////////////////// */}
@@ -704,7 +702,7 @@ Thank you.
             </h2>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-end">
             <SelectField
               label="Status"
               value={billStatusFilter}
@@ -720,10 +718,10 @@ Thank you.
                 { label: "Pending", value: "Pending" },
                 { label: "Paid", value: "Paid" },
               ]}
-              containerClassName="w-40"
+              containerClassName="w-full sm:w-40"
             />
 
-            <div className="w-full sm:ml-auto sm:min-w-[220px] sm:flex-1">
+            <div className="w-full lg:col-span-2">
               <InputField
                 label="Search"
                 placeholder="Bill no / farmer / code"
@@ -746,8 +744,7 @@ Thank you.
               <Loader size="md" message="Loading bills..." />
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="min-w-[1000px]">
+            <div className="w-full overflow-x-auto scroll-smooth">
                 <DataTable
                   data={filteredBills}
                   columns={billColumns}
@@ -756,7 +753,6 @@ Thank you.
                   dense
                   emptyMessage="No bills found."
                 />
-              </div>
             </div>
           )}
         </div>

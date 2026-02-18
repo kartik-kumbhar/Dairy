@@ -338,11 +338,6 @@ const MilkCollectionListPage: React.FC = () => {
               onChange={(e) =>
                 setMilkFilter(e.target.value as "All" | MilkType)
               }
-              // options={[
-              //   { label: "All Types", value: "All" },
-              //   { label: "Cow", value: "cow" },
-              //   { label: "Buffalo", value: "buffalo" },
-              // ]}
               options={[
                 { label: "All Types", value: "All" },
                 { label: "Cow", value: "cow" },
