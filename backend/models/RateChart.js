@@ -49,10 +49,19 @@ const rateChartSchema = new mongoose.Schema(
     },
     effectiveFrom: {
       type: String, // YYYY-MM-DD
-      required: true, 
+      required: true,
       default: () => new Date().toISOString().slice(0, 10),
     },
-
+    fatSlabs: {
+      type: [
+        {
+          from: { type: Number, required: true },
+          to: { type: Number, required: true },
+          rate: { type: Number, required: true },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true },
 );

@@ -1,8 +1,15 @@
 // src/types/rateChart.ts
 import type { MilkType } from "./farmer";
 
+export interface FatSlab {
+  from: number;
+  to: number;
+  rate: number;
+}
+
 export interface MilkRateChart {
   milkType: MilkType;
+  fatSlabs: FatSlab[];
 
   fatMin: number;
   fatMax: number;
