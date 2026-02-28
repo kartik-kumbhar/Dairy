@@ -805,7 +805,7 @@ const RateChartPage: React.FC = () => {
             {/* FAT SLABS CONFIG */}
 
             <h3 className="text-xs font-semibold text-[#5E503F] mt-5 mb-1">
-              FAT Difference (Incentive System)
+              FAT Difference
             </h3>
 
             <div className="space-y-2">
@@ -928,7 +928,7 @@ const RateChartPage: React.FC = () => {
             {/* SNF SLABS CONFIG */}
 
             <h3 className="text-xs font-semibold text-[#5E503F] mt-5">
-              SNF Difference (Incentive System)
+              SNF Difference
             </h3>
 
             <div className="space-y-2">
