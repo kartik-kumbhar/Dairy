@@ -46,36 +46,41 @@ export const generateBill = async (req, res) => {
     const { farmerId, periodFrom, periodTo } = req.body;
     // Force periodFrom to first of month
 
-    const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+    // const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
-    const billMonth = normalizedPeriodFrom.slice(0, 7);
-    // const milkList = await Milk.find({
-    //   farmerId,
-    //   date: { $gte: periodFrom, $lte: periodTo },
-    // });
+    // const billMonth = normalizedPeriodFrom.slice(0, 7);
 
+    // 🚫 Prevent overlapping periods
+   const fromDate = new Date(periodFrom);
+const toDate = new Date(periodTo);
+
+const overlappingBill = await Bill.findOne({
+  farmerId,
+  periodFrom: { $lte: toDate },
+  periodTo: { $gte: fromDate },
+});
+
+    if (overlappingBill) {
+      return res.status(400).json({
+        message: `Bill already exists for overlapping period (${overlappingBill.periodFrom} → ${overlappingBill.periodTo})`,
+      });
+    }
     const milkList = await Milk.find({
       farmerId,
-      date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+      date: { $gte: periodFrom, $lte: periodTo },
     });
 
     const deductionList = await Deduction.find({
       farmerId,
       // date: { $gte: periodFrom, $lte: periodTo },
-      date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+      date: { $gte: periodFrom, $lte: periodTo },
     });
 
     const bonusList = await Bonus.find({
       farmerId,
       // date: { $gte: periodFrom, $lte: periodTo },
-      date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+      date: { $gte: periodFrom, $lte: periodTo },
     });
-    // const inventoryList = await InventoryTransaction.find({
-    //   farmerId,
-    //   remainingAmount: { $gt: 0 },
-    //   paymentMethod: { $ne: "Cash" },
-    //   isAdjustedInBill: false,
-    // });
 
     const inventoryList = await InventoryTransaction.find({
       farmerId,
@@ -87,7 +92,7 @@ export const generateBill = async (req, res) => {
 
     const totalLiters = milkList.reduce((s, m) => s + m.quantity, 0);
     const totalMilkAmount = milkList.reduce((s, m) => s + m.totalAmount, 0);
-    // const totalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);
+
     const totalBonus = bonusList.reduce((s, b) => s + b.amount, 0);
 
     const normalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);
@@ -99,18 +104,38 @@ export const generateBill = async (req, res) => {
 
     const totalDeduction = normalDeduction + inventoryDeduction;
 
-    const netPayable = totalMilkAmount + totalBonus - totalDeduction;
+    let netPayable = totalMilkAmount + totalBonus - totalDeduction;
 
-    await Bill.findOneAndDelete({
-      farmerId,
-      billMonth,
-    });
-    
+    // await Bill.findOneAndDelete({
+    //   farmerId,
+    //   billMonth,
+    // });
+
+    // 🔥 Get last unpaid bill
+   const lastUnpaidBill = await Bill.findOne({
+  farmerId,
+  status: "Pending",
+  periodTo: { $lt: periodFrom }, // only older bills
+}).sort({ periodTo: -1 });
+
+    let carryForwardAmount = 0;
+
+    if (lastUnpaidBill) {
+      carryForwardAmount = lastUnpaidBill.netPayable;
+    }
+
+
+    // 🔥 Add previous unpaid amount
+    netPayable += carryForwardAmount;
+
     const bill = await Bill.create({
       farmerId,
-      periodFrom: normalizedPeriodFrom,
+      periodFrom,
       periodTo,
-      billMonth: normalizedPeriodFrom.slice(0, 7),
+
+
+      
+      // billMonth: normalizedPeriodFrom.slice(0, 7),
       totalLiters,
       totalMilkAmount,
       totalDeduction,
@@ -131,7 +156,7 @@ export const generateBill = async (req, res) => {
 
     res.json(bill);
   } catch (err) {
-    // 🔒 Duplicate protection
+    // Duplicate protection
     if (err.code === 11000) {
       return res.status(409).json({
         message: "Bill already generated for this farmer and period",
@@ -146,29 +171,22 @@ export const previewBill = async (req, res) => {
   const { farmerId, periodFrom, periodTo } = req.body;
 
   //  normalize
-  const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+  // const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
   const milkList = await Milk.find({
     farmerId,
-    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+    date: { $gte: periodFrom, $lte: periodTo },
   });
 
   const deductionList = await Deduction.find({
     farmerId,
-    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+    date: { $gte: periodFrom, $lte: periodTo },
   });
 
   const bonusList = await Bonus.find({
     farmerId,
-    date: { $gte: normalizedPeriodFrom, $lte: periodTo },
+    date: { $gte: periodFrom, $lte: periodTo },
   });
-
-  // const inventoryList = await InventoryTransaction.find({
-  //   farmerId,
-  //   remainingAmount: { $gt: 0 },
-  //   paymentMethod: { $ne: "Cash" },
-  //   isAdjustedInBill: false,
-  // });
 
   const inventoryList = await InventoryTransaction.find({
     farmerId,
@@ -182,7 +200,6 @@ export const previewBill = async (req, res) => {
 
   const totalLiters = milkList.reduce((s, m) => s + m.quantity, 0);
   const milkAmount = milkList.reduce((s, m) => s + m.totalAmount, 0);
-  // const deductionAmount = deductionList.reduce((s, d) => s + d.amount, 0);
   const bonusAmount = bonusList.reduce((s, b) => s + b.amount, 0);
 
   const normalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);

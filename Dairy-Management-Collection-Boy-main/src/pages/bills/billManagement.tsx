@@ -35,9 +35,9 @@ interface CalculatedBillRow {
 const BillManagementPage: React.FC = () => {
   const today = new Date();
 
-  const todayISO = `${today.getFullYear()}-${String(
-    today.getMonth() + 1,
-  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  // const todayISO = `${today.getFullYear()}-${String(
+  //   today.getMonth() + 1,
+  // ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const firstOfMonthISO = `${today.getFullYear()}-${String(
     today.getMonth() + 1,
@@ -52,8 +52,14 @@ const BillManagementPage: React.FC = () => {
   // Generate section state
   const [scope, setScope] = useState<BillScope>("All");
   const [selectedFarmerId, setSelectedFarmerId] = useState("");
-  const [periodFrom] = useState<string>(firstOfMonthISO);
-  const [periodTo, setPeriodTo] = useState<string>(todayISO);
+  // const [periodFrom] = useState<string>(firstOfMonthISO);
+  // const [periodTo, setPeriodTo] = useState<string>(todayISO);
+  const [periodFrom, setPeriodFrom] = useState<string>(firstOfMonthISO);
+  const [periodTo, setPeriodTo] = useState<string>(() => {
+    const d = new Date(firstOfMonthISO);
+    d.setDate(d.getDate() + 9);
+    return d.toISOString().split("T")[0];
+  });
 
   const [calculating, setCalculating] = useState(false);
   const [calculatedRows, setCalculatedRows] = useState<CalculatedBillRow[]>([]);
@@ -109,6 +115,16 @@ const BillManagementPage: React.FC = () => {
     loadBills();
   }, []);
 
+  useEffect(() => {
+    if (!periodFrom) return;
+
+    const fromDate = new Date(periodFrom);
+    const toDate = new Date(fromDate);
+    toDate.setDate(fromDate.getDate() + 9); // 10 days total
+
+    setPeriodTo(toDate.toISOString().split("T")[0]);
+  }, [periodFrom]);
+
   // ---------- STATS ----------
   const billStats = useMemo(() => {
     const totalBills = existingBills.length;
@@ -160,16 +176,16 @@ const BillManagementPage: React.FC = () => {
 
       const farmersToProcess =
         scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
-      const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+      // const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
       for (const f of farmersToProcess) {
         const res = await api.post("/bills/preview", {
           farmerId: f._id,
-          periodFrom: normalizedPeriodFrom,
+          periodFrom,
           periodTo,
         });
 
-        if (res.data.totalLiters === 0 && res.data.netAmount === 0) {
+        if (res.data.netAmount === 0) {
           continue;
         }
 
@@ -206,31 +222,38 @@ const BillManagementPage: React.FC = () => {
     try {
       setSavingBills(true);
 
-      const farmersToProcess =
-        scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
+      const farmersToProcess = calculatedRows
+        .map((r) => farmers.find((f) => f._id === r.farmerId))
+        .filter((f): f is Farmer => Boolean(f));
 
       let success = 0;
-      // let skipped = 0;
-      const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
+      let skipped = 0;
 
       for (const f of farmersToProcess) {
         try {
           await generateBill({
             farmerId: f._id,
-            periodFrom: normalizedPeriodFrom,
+            periodFrom,
             periodTo,
           });
           success++;
         } catch (err: unknown) {
-          if (axios.isAxiosError(err) && err.response?.status === 409) {
-            // skipped++; // bill already exists
-          } else {
-            throw err; // real error
+          if (axios.isAxiosError(err)) {
+            const status = err.response?.status;
+
+            // Skip already existing / overlapping bills
+            if (status === 400 || status === 409) {
+              skipped++;
+              continue;
+            }
           }
+
+          // Real error
+          throw err;
         }
       }
 
-      toast.success(`Bills generated: ${success}`); //\nAlready existed: ${skipped}
+      toast.success(`Bills generated: ${success}\nAlready existed: ${skipped}`);
 
       await loadBills();
       setCalculatedRows([]);
@@ -270,6 +293,17 @@ const BillManagementPage: React.FC = () => {
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to mark bill as Paid");
     }
+  };
+
+  // farmatDate
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
   };
 
   // ---------- TABLES ----------
@@ -337,7 +371,7 @@ const BillManagementPage: React.FC = () => {
       align: "center",
       cell: (row) => (
         <span className="text-xs text-[#5E503F] whitespace-nowrap">
-          {row.periodFrom} → {row.periodTo}
+  {formatDate(row.periodFrom)} → {formatDate(row.periodTo)}
         </span>
       ),
     },
@@ -576,15 +610,15 @@ Thank you.
               label="Period From"
               type="date"
               value={periodFrom}
-              disabled
+              onChange={(e) => setPeriodFrom(e.target.value)}
+              requiredLabel
             />
 
             <InputField
               label="Period To"
               type="date"
               value={periodTo}
-              onChange={(e) => setPeriodTo(e.target.value)}
-              requiredLabel
+              disabled
             />
 
             {scope === "Single" && (
@@ -627,14 +661,14 @@ Thank you.
               </div>
             ) : (
               <>
-                <div className="w-full overflow-x-auto scroll-smooth">
-                    <DataTable
-                      data={calculatedRows}
-                      columns={previewColumns}
-                      keyField="farmerId"
-                      striped
-                      dense
-                    />
+                <div className="w-full overflow-x-auto ">
+                  <DataTable
+                    data={calculatedRows}
+                    columns={previewColumns}
+                    keyField="farmerId"
+                    striped
+                    dense
+                  />
                 </div>
 
                 {/* ////////////////////////////////////////// */}
@@ -702,26 +736,29 @@ Thank you.
             </h2>
           </div>
 
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-end">
-            <SelectField
-              label="Status"
-              value={billStatusFilter}
-              onChange={(e) =>
-                setBillStatusFilter(
-                  e.target.value === "All"
-                    ? "All"
-                    : (e.target.value as BillStatus),
-                )
-              }
-              options={[
-                { label: "All", value: "All" },
-                { label: "Pending", value: "Pending" },
-                { label: "Paid", value: "Paid" },
-              ]}
-              containerClassName="w-full sm:w-40"
-            />
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            {/* Status */}
+            <div className="w-full sm:w-40">
+              <SelectField
+                label="Status"
+                value={billStatusFilter}
+                onChange={(e) =>
+                  setBillStatusFilter(
+                    e.target.value === "All"
+                      ? "All"
+                      : (e.target.value as BillStatus),
+                  )
+                }
+                options={[
+                  { label: "All", value: "All" },
+                  { label: "Pending", value: "Pending" },
+                  { label: "Paid", value: "Paid" },
+                ]}
+              />
+            </div>
 
-            <div className="w-full lg:col-span-2">
+            {/* Search */}
+            <div className="flex-1">
               <InputField
                 label="Search"
                 placeholder="Bill no / farmer / code"
@@ -730,13 +767,16 @@ Thank you.
               />
             </div>
 
-            <button
-              type="button"
-              onClick={loadBills}
-              className="rounded-md border border-[#E9E2C8] bg-white px-4 py-2 text-sm text-[#5E503F] hover:bg-[#F8F4E3]"
-            >
-              Refresh
-            </button>
+            {/* Refresh Button */}
+            <div>
+              <button
+                type="button"
+                onClick={loadBills}
+                className="h-[42px] rounded-md border border-[#E9E2C8] bg-white px-4 text-sm text-[#5E503F] hover:bg-[#F8F4E3]"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           {loadingBills ? (
@@ -745,14 +785,14 @@ Thank you.
             </div>
           ) : (
             <div className="w-full overflow-x-auto scroll-smooth">
-                <DataTable
-                  data={filteredBills}
-                  columns={billColumns}
-                  keyField="_id"
-                  striped
-                  dense
-                  emptyMessage="No bills found."
-                />
+              <DataTable
+                data={filteredBills}
+                columns={billColumns}
+                keyField="_id"
+                striped
+                dense
+                emptyMessage="No bills found."
+              />
             </div>
           )}
         </div>

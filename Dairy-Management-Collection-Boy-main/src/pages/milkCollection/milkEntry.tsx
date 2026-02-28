@@ -598,8 +598,6 @@ const MilkEntryPage: React.FC = () => {
             Milk Can Platform (40L each)
           </h2>
 
-          {/* <div className="overflow-x-auto pb-2">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 min-w-[600px] lg:min-w-0"> */}
           <div className="overflow-x-auto pb-2">
             <div className="grid grid-cols-6 gap-6 min-w-[900px] w-full text-center">
               {/* Cow Morning */}
@@ -635,7 +633,7 @@ const MilkEntryPage: React.FC = () => {
                       <MilkContainer
                         filledLiters={0}
                         color="#E76F51"
-                        label="0"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -674,7 +672,7 @@ const MilkEntryPage: React.FC = () => {
                       <MilkContainer
                         filledLiters={0}
                         color="#F4A261"
-                        label="0"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -683,8 +681,6 @@ const MilkEntryPage: React.FC = () => {
               </div>
 
               {/* Buffalo Morning */}
-              {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#457B9D]"> */}
               <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#E76F51]">
                   🐃 Buffalo Morning
@@ -712,7 +708,7 @@ const MilkEntryPage: React.FC = () => {
                       <MilkContainer
                         filledLiters={0}
                         color="#457B9D"
-                        label="0"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -751,7 +747,7 @@ const MilkEntryPage: React.FC = () => {
                       <MilkContainer
                         filledLiters={0}
                         color="#1D3557"
-                        label="0"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -763,7 +759,7 @@ const MilkEntryPage: React.FC = () => {
               {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
                 <div className=" text-xs font-semibold text-[#457B9D]"> */}
               <div className="flex flex-col items-center w-full">
-                <div className=" text-xs font-semibold text-[#457B9D]">
+                <div className=" text-xs font-semibold text-[#1D3557]">
                   🥛 Mix Morning
                 </div>
 
@@ -771,7 +767,7 @@ const MilkEntryPage: React.FC = () => {
                   {mixMorning.fullCount > 0 && (
                     <MilkContainer
                       filledLiters={40}
-                      color="#457B9D"
+                      color="#1D3557"
                       label={`${mixMorning.fullCount} cans`}
                     />
                   )}
@@ -779,7 +775,7 @@ const MilkEntryPage: React.FC = () => {
                   {mixMorning.runningLiters > 0 && (
                     <MilkContainer
                       filledLiters={mixMorning.runningLiters}
-                      color="#457B9D"
+                      color="#1D3557"
                       label={`${mixMorning.runningLiters} L`}
                     />
                   )}
@@ -788,8 +784,8 @@ const MilkEntryPage: React.FC = () => {
                     mixMorning.runningLiters === 0 && (
                       <MilkContainer
                         filledLiters={0}
-                        color="#457B9D"
-                        label="0"
+                        color="#1D3557"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -828,7 +824,7 @@ const MilkEntryPage: React.FC = () => {
                       <MilkContainer
                         filledLiters={0}
                         color="#1D3557"
-                        label="0"
+                        label="0 L"
                       />
                     )}
                 </div>
@@ -841,11 +837,11 @@ const MilkEntryPage: React.FC = () => {
 
         {/* List + Filters */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            {" "}
             <h2 className="text-sm font-semibold text-[#5E503F]">
               Collections
             </h2>
-
             {/* Filter mode */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-[#5E503F]">
@@ -885,9 +881,8 @@ const MilkEntryPage: React.FC = () => {
                 All
               </button>
             </div>
-
             {/* Day / Month inputs */}
-            {filterMode === "day" && (
+            {/* {filterMode === "day" && (
               <InputField
                 label="Day"
                 type="date"
@@ -895,6 +890,17 @@ const MilkEntryPage: React.FC = () => {
                 onChange={(e) => setFilterDate(e.target.value)}
                 containerClassName="w-40"
               />
+            )} */}
+            {filterMode === "day" && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#5E503F]">Day</span>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="rounded-md border border-[#E9E2C8] bg-white px-3 py-1.5 text-xs text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F]"
+                />
+              </div>
             )}
             {filterMode === "month" && (
               <div className="w-40">

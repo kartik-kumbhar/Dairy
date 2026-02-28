@@ -12,7 +12,7 @@ import type { MilkRateChart } from "../../types/rateChart";
 import { getRateCharts, updateRateChart } from "../../axios/rateChart_api";
 import toast from "react-hot-toast";
 
-type FatSlab = {
+type Slab = {
   from: number;
   to: number;
   rate: number;
@@ -44,7 +44,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function calculateFatAmount(fat: number, slabs: FatSlab[] = []) {
+function calculateFatAmount(fat: number, slabs: Slab[] = []) {
   let total = 0;
 
   slabs.forEach((slab) => {
@@ -56,7 +56,7 @@ function calculateFatAmount(fat: number, slabs: FatSlab[] = []) {
 
   return Math.round(total * 100) / 100;
 }
-const validateSlabs = (slabs: FatSlab[]) => {
+const validateSlabs = (slabs: Slab[]) => {
   for (let i = 0; i < slabs.length - 1; i++) {
     if (slabs[i].to > slabs[i + 1].from) {
       return false;
@@ -67,23 +67,27 @@ const validateSlabs = (slabs: FatSlab[]) => {
 
 function formulaRate(
   baseRate: number,
-  snfFactor: number,
   fat: number,
   snf: number,
-  slabs: FatSlab[],
+  fatSlabs: Slab[],
+  snfSlabs: Slab[],
 ): number {
-  return round2(baseRate + calculateFatAmount(fat, slabs) + snf * snfFactor);
+  return round2(
+    baseRate +
+      calculateFatAmount(fat, fatSlabs) +
+      calculateSnfAmount(snf, snfSlabs),
+  );
 }
 
 function generateMatrix(
   chart: Pick<
     MilkRateChart,
-    "fats" | "snfs" | "baseRate" | "snfFactor" | "fatSlabs"
+    "fats" | "snfs" | "baseRate" | "snfFactor" | "fatSlabs" | "snfSlabs"
   >,
 ): number[][] {
   return chart.fats.map((fat) =>
     chart.snfs.map((snf) =>
-      formulaRate(chart.baseRate, chart.snfFactor, fat, snf, chart.fatSlabs),
+      formulaRate(chart.baseRate, fat, snf, chart.fatSlabs, chart.snfSlabs),
     ),
   );
 }
@@ -111,11 +115,11 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   // Default Ranges
   const fatMin = 3.0;
   const fatMax = 5.0;
-  const fatStep = 0.2;
+  const fatStep = 0.1;
 
   const snfMin = 7.0;
   const snfMax = 9.0;
-  const snfStep = 0.2;
+  const snfStep = 0.1;
 
   const fats = generateRange(fatMin, fatMax, fatStep);
   const snfs = generateRange(snfMin, snfMax, snfStep);
@@ -127,14 +131,9 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   return {
     milkType,
 
-    fatSlabs: [
-      { from: 3, to: 4, rate: 0.1 },
-      { from: 4, to: 5, rate: 0.15 },
-      { from: 5, to: 6, rate: 0.18 },
-      { from: 6, to: 7, rate: 0.2 },
-      { from: 7, to: 10, rate: 0.25 },
-    ],
+    fatSlabs: [{ from: fatMin, to: fatMin + 1, rate: 0.1 }],
 
+    snfSlabs: [{ from: snfMin, to: snfMin + 1, rate: 0.1 }],
     // ADD THESE
     fatMin,
     fatMax,
@@ -157,6 +156,19 @@ function defaultChart(milkType: MilkType): MilkRateChart {
   };
 }
 
+function calculateSnfAmount(snf: number, slabs: Slab[] = []) {
+  let total = 0;
+
+  slabs.forEach((slab) => {
+    if (snf > slab.from) {
+      const usableSnf = Math.min(snf, slab.to) - slab.from;
+      if (usableSnf > 0) total += usableSnf * 10 * slab.rate;
+    }
+  });
+
+  return Math.round(total * 100) / 100;
+}
+
 function generateRange(min: number, max: number, step: number): number[] {
   const count = Math.round((max - min) / step);
   return Array.from({ length: count + 1 }, (_, i) =>
@@ -168,7 +180,10 @@ const RateChartPage: React.FC = () => {
   const [charts, setCharts] = useState<RateChartStorage | null>(null);
   const [activeMilkType, setActiveMilkType] = useState<MilkType>("cow");
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
+  const [showAllFatSlabs, setShowAllFatSlabs] = useState(false);
+  const [showAllSnfSlabs, setShowAllSnfSlabs] = useState(false);
   // Confirm reset
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -186,11 +201,11 @@ const RateChartPage: React.FC = () => {
 
               fatMin: res.data.cow.fatMin ?? 3.0,
               fatMax: res.data.cow.fatMax ?? 5.0,
-              fatStep: res.data.cow.fatStep ?? 0.2,
+              fatStep: res.data.cow.fatStep ?? 0.1,
 
               snfMin: res.data.cow.snfMin ?? 7.0,
               snfMax: res.data.cow.snfMax ?? 9.0,
-              snfStep: res.data.cow.snfStep ?? 0.2,
+              snfStep: res.data.cow.snfStep ?? 0.1,
 
               effectiveFrom:
                 res.data.cow.effectiveFrom ??
@@ -204,11 +219,11 @@ const RateChartPage: React.FC = () => {
 
               fatMin: res.data.buffalo.fatMin ?? 3.0,
               fatMax: res.data.buffalo.fatMax ?? 5.0,
-              fatStep: res.data.buffalo.fatStep ?? 0.2,
+              fatStep: res.data.buffalo.fatStep ?? 0.1,
 
               snfMin: res.data.buffalo.snfMin ?? 7.0,
               snfMax: res.data.buffalo.snfMax ?? 9.0,
-              snfStep: res.data.buffalo.snfStep ?? 0.2,
+              snfStep: res.data.buffalo.snfStep ?? 0.1,
 
               effectiveFrom:
                 res.data.buffalo.effectiveFrom ??
@@ -222,10 +237,16 @@ const RateChartPage: React.FC = () => {
 
         const ensureOneSlab = (chart: MilkRateChart): MilkRateChart => ({
           ...chart,
+
           fatSlabs:
             chart.fatSlabs && chart.fatSlabs.length > 0
               ? chart.fatSlabs
               : [{ from: chart.fatMin, to: chart.fatMin + 1, rate: 0.1 }],
+
+          snfSlabs:
+            chart.snfSlabs && chart.snfSlabs.length > 0
+              ? chart.snfSlabs
+              : [{ from: chart.snfMin, to: chart.snfMin + 1, rate: 0.1 }],
         });
 
         setCharts({
@@ -276,7 +297,7 @@ const RateChartPage: React.FC = () => {
 
   // ---------- FAT SLAB FUNCTIONS ----------
 
-  const updateSlab = (index: number, field: keyof FatSlab, value: number) => {
+  const updateSlab = (index: number, field: keyof Slab, value: number) => {
     const slabs = [...(current.fatSlabs || [])];
     slabs[index] = { ...slabs[index], [field]: value };
     setCurrent({ ...current, fatSlabs: slabs });
@@ -308,6 +329,38 @@ const RateChartPage: React.FC = () => {
     setCurrent({ ...current, fatSlabs: slabs });
   };
 
+  // ---------- SNF SLAB FUNCTIONS ----------
+
+  const updateSnfSlab = (index: number, field: keyof Slab, value: number) => {
+    const slabs = [...(current.snfSlabs || [])];
+    slabs[index] = { ...slabs[index], [field]: value };
+    setCurrent({ ...current, snfSlabs: slabs });
+  };
+
+  const addSnfSlab = () => {
+    const slabs = [...(current.snfSlabs || [])];
+
+    const from =
+      slabs.length === 0 ? current.snfMin : slabs[slabs.length - 1].to;
+
+    slabs.push({
+      from,
+      to: Number((from + 1).toFixed(1)),
+      rate: 0.1,
+    });
+
+    setCurrent({ ...current, snfSlabs: slabs });
+  };
+
+  const deleteSnfSlab = (index: number) => {
+    let slabs = current.snfSlabs.filter((_, i) => i !== index);
+
+    if (slabs.length === 0) {
+      slabs = [{ from: current.snfMin, to: current.snfMin + 1, rate: 0.1 }];
+    }
+
+    setCurrent({ ...current, snfSlabs: slabs });
+  };
   const handleFormulaChange = (
     field: "baseRate" | "fatFactor" | "snfFactor",
     value: string,
@@ -320,11 +373,24 @@ const RateChartPage: React.FC = () => {
     });
   };
 
-  const regenerateFromFormula = () => {
+  // ---------- DISABLE ADD BUTTON LOGIC ----------
+
+  const isFatMaxReached: boolean =
+    !!current.fatSlabs?.length &&
+    current.fatSlabs[current.fatSlabs.length - 1].to >= current.fatMax;
+
+  const isSnfMaxReached: boolean =
+    !!current.snfSlabs?.length &&
+    current.snfSlabs[current.snfSlabs.length - 1].to >= current.snfMax;
+  const regenerateFromFormula = async () => {
     if (!validateSlabs(current.fatSlabs || [])) {
       toast.error("Fat slabs are overlapping!");
       return;
     }
+
+    setGenerating(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     if (current.fatMin >= current.fatMax) {
       toast.error("FAT Min must be less than Max");
@@ -363,6 +429,7 @@ const RateChartPage: React.FC = () => {
       baseRate: current.baseRate,
       snfFactor: current.snfFactor,
       fatSlabs: current.fatSlabs || [],
+      snfSlabs: current.snfSlabs || [],
     });
 
     setCurrent({
@@ -373,6 +440,7 @@ const RateChartPage: React.FC = () => {
       rates,
       updatedAt: new Date().toISOString(),
     });
+    setGenerating(false);
   };
 
   const resetToDefault = () => {
@@ -380,6 +448,10 @@ const RateChartPage: React.FC = () => {
 
     if (!def.fatSlabs || def.fatSlabs.length === 0) {
       def.fatSlabs = [{ from: def.fatMin, to: def.fatMin + 1, rate: 0.1 }];
+    }
+
+    if (!def.snfSlabs || def.snfSlabs.length === 0) {
+      def.snfSlabs = [{ from: def.snfMin, to: def.snfMin + 1, rate: 0.1 }];
     }
     setCurrent(def);
     setShowResetConfirm(false);
@@ -550,11 +622,11 @@ const RateChartPage: React.FC = () => {
 
         fatMin: Math.min(...fats),
         fatMax: Math.max(...fats),
-        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.2,
+        fatStep: fats.length > 1 ? fats[1] - fats[0] : 0.1,
 
         snfMin: Math.min(...snfs),
         snfMax: Math.max(...snfs),
-        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.2,
+        snfStep: snfs.length > 1 ? snfs[1] - snfs[0] : 0.1,
         milkType: selectedMilkType,
 
         fats,
@@ -565,9 +637,9 @@ const RateChartPage: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      if (!updatedChart.fatSlabs || updatedChart.fatSlabs.length === 0) {
-        updatedChart.fatSlabs = [
-          { from: updatedChart.fatMin, to: updatedChart.fatMin + 1, rate: 0.1 },
+      if (!updatedChart.snfSlabs || updatedChart.snfSlabs.length === 0) {
+        updatedChart.snfSlabs = [
+          { from: updatedChart.snfMin, to: updatedChart.snfMin + 1, rate: 0.1 },
         ];
       }
 
@@ -704,7 +776,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Min"
                 type="number"
-                step="0.2"
+                step="0.1"
                 value={String(current.fatMin)}
                 onChange={(e) =>
                   setCurrent({ ...current, fatMin: Number(e.target.value) })
@@ -713,7 +785,7 @@ const RateChartPage: React.FC = () => {
               <InputField
                 label="Max"
                 type="number"
-                step="0.2"
+                step="0.1"
                 value={String(current.fatMax)}
                 onChange={(e) =>
                   setCurrent({ ...current, fatMax: Number(e.target.value) })
@@ -730,48 +802,17 @@ const RateChartPage: React.FC = () => {
               />
             </div>
 
-            {/* Range SNF */}
-            <h3 className="text-xs font-semibold text-[#5E503F] mt-4">
-              SNF Range
-            </h3>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <InputField
-                label="Min"
-                type="number"
-                step="0.2"
-                value={String(current.snfMin)}
-                onChange={(e) =>
-                  setCurrent({ ...current, snfMin: Number(e.target.value) })
-                }
-              />
-              <InputField
-                label="Max"
-                type="number"
-                step="0.2"
-                value={String(current.snfMax)}
-                onChange={(e) =>
-                  setCurrent({ ...current, snfMax: Number(e.target.value) })
-                }
-              />
-              <InputField
-                label="SNF Factor"
-                type="number"
-                step="0.01"
-                value={String(current.snfFactor)}
-                onChange={(e) =>
-                  handleFormulaChange("snfFactor", e.target.value)
-                }
-              />
-            </div>
             {/* FAT SLABS CONFIG */}
 
-            <h3 className="text-xs font-semibold text-[#5E503F] mt-5">
-              FAT Slabs (Incentive System)
+            <h3 className="text-xs font-semibold text-[#5E503F] mt-5 mb-1">
+              FAT Difference (Incentive System)
             </h3>
 
             <div className="space-y-2">
-              {current.fatSlabs?.map((slab, i) => (
+              {(showAllFatSlabs
+                ? current.fatSlabs
+                : current.fatSlabs?.slice(0, 1)
+              )?.map((slab, i) => (
                 <div
                   key={i}
                   className="flex items-end gap-2 rounded-lg border border-[#E9E2C8] bg-[#FAF7ED] p-2 transition hover:border-[#2A9D8F] hover:bg-[#F1F9F7]"
@@ -816,13 +857,160 @@ const RateChartPage: React.FC = () => {
                 </div>
               ))}
 
+              {current.fatSlabs.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFatSlabs(!showAllFatSlabs)}
+                    className="text-[11px] text-[#2A9D8F] font-medium hover:underline"
+                  >
+                    {showAllFatSlabs
+                      ? "Hide Slabs"
+                      : `View All Slabs (${current.fatSlabs.length})`}
+                  </button>
+                  <br />
+                </>
+              )}
+
               <button
                 type="button"
-                onClick={addSlab}
-                className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#2A9D8F] px-4 py-1.5 text-xs font-medium text-white shadow hover:bg-[#247B71] transition"
+                onClick={() => {
+                  addSlab();
+                  setShowAllFatSlabs(true);
+                }}
+                disabled={isFatMaxReached}
+                className={`mt-2 inline-flex items-center gap-1 rounded-md px-4 py-1.5 text-xs font-medium text-white shadow transition-all duration-200
+    ${
+      isFatMaxReached
+        ? "bg-gray-400 cursor-not-allowed opacity-80"
+        : "bg-[#2A9D8F] hover:bg-[#247B71] cursor-pointer"
+    }`}
+              >
+                <span className="text-lg leading-none">＋</span>Add FAT Diff
+              </button>
+            </div>
+
+            {/* Range SNF */}
+            <h3 className="text-xs font-semibold text-[#5E503F] mt-4">
+              SNF Range
+            </h3>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <InputField
+                label="Min"
+                type="number"
+                step="0.1"
+                value={String(current.snfMin)}
+                onChange={(e) =>
+                  setCurrent({ ...current, snfMin: Number(e.target.value) })
+                }
+              />
+              <InputField
+                label="Max"
+                type="number"
+                step="0.1"
+                value={String(current.snfMax)}
+                onChange={(e) =>
+                  setCurrent({ ...current, snfMax: Number(e.target.value) })
+                }
+              />
+              <InputField
+                label="SNF Factor"
+                type="number"
+                step="0.01"
+                value={String(current.snfFactor)}
+                onChange={(e) =>
+                  handleFormulaChange("snfFactor", e.target.value)
+                }
+              />
+            </div>
+
+            {/* SNF SLABS CONFIG */}
+
+            <h3 className="text-xs font-semibold text-[#5E503F] mt-5">
+              SNF Difference (Incentive System)
+            </h3>
+
+            <div className="space-y-2">
+              {(showAllSnfSlabs
+                ? current.snfSlabs
+                : current.snfSlabs?.slice(0, 1)
+              )?.map((slab, i) => (
+                <div
+                  key={i}
+                  className="flex items-end gap-2 rounded-lg border border-[#E9E2C8] bg-[#FAF7ED] p-2 transition hover:border-[#2A9D8F] hover:bg-[#F1F9F7]"
+                >
+                  <InputField
+                    label="From"
+                    type="number"
+                    step="0.1"
+                    value={String(slab.from)}
+                    onChange={(e) =>
+                      updateSnfSlab(i, "from", Number(e.target.value))
+                    }
+                  />
+
+                  <InputField
+                    label="To"
+                    type="number"
+                    step="0.1"
+                    value={String(slab.to)}
+                    onChange={(e) =>
+                      updateSnfSlab(i, "to", Number(e.target.value))
+                    }
+                  />
+
+                  <InputField
+                    label="Rate /0.1 SNF"
+                    type="number"
+                    step="0.01"
+                    value={String(slab.rate)}
+                    onChange={(e) =>
+                      updateSnfSlab(i, "rate", Number(e.target.value))
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => deleteSnfSlab(i)}
+                    className="mt-5 rounded bg-red-500 px-2 py-1 text-white text-xs"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+
+              {current.snfSlabs.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllSnfSlabs(!showAllSnfSlabs)}
+                    className="text-[11px] text-[#2A9D8F] font-medium hover:underline"
+                  >
+                    {showAllSnfSlabs
+                      ? "Hide Slabs"
+                      : `View All Slabs (${current.snfSlabs.length})`}
+                  </button>
+                  <br />
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  addSnfSlab();
+                  setShowAllFatSlabs(true);
+                }}
+                disabled={isSnfMaxReached}
+                className={`mt-2 inline-flex items-center gap-1 rounded-md px-4 py-1.5 text-xs font-medium text-white shadow transition-all duration-200
+    ${
+      isSnfMaxReached
+        ? "bg-gray-400 cursor-not-allowed opacity-80"
+        : "bg-[#2A9D8F] hover:bg-[#247B71] cursor-pointer"
+    }`}
               >
                 <span className="text-lg leading-none">＋</span>
-                Add FAT Range
+                Add SNF Diff
               </button>
             </div>
 
@@ -834,9 +1022,12 @@ const RateChartPage: React.FC = () => {
               <button
                 type="button"
                 onClick={regenerateFromFormula}
-                className="rounded-md bg-[#2A9D8F] px-4 py-2 text-xs font-medium text-white shadow hover:bg-[#247B71]"
+                disabled={generating}
+                className="rounded-md bg-[#2A9D8F] px-4 py-2 text-xs font-medium text-white shadow hover:bg-[#247B71] disabled:opacity-70"
               >
-                Apply Formula (Generate Chart)
+                {generating
+                  ? "Generating..."
+                  : "Apply Formula (Generate Chart)"}
               </button>
               <button
                 type="button"
@@ -855,12 +1046,7 @@ const RateChartPage: React.FC = () => {
             <h2 className="text-sm font-semibold text-[#5E503F]">
               Rate Chart {/*Matrix (FAT × SNF) */}
             </h2>
-            <div className="flex items-center gap-3 text-xs text-[#5E503F]/70">
-              {/* <span>
-                FAT rows: {current.fats.join(", ")} | SNF columns:{" "}
-                {current.snfs.join(", ")}
-              </span> */}
-            </div>
+            <div className="flex items-center gap-3 text-xs text-[#5E503F]/70"></div>
           </div>
 
           <div className="w-full rounded-lg border border-[#E9E2C8]">

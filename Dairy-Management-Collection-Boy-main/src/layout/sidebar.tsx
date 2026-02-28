@@ -187,7 +187,8 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
     { label: "Bonus Management", path: "/bonus", icon: <BonusIcon /> },
     { label: "Rate Chart", path: "/rate-chart", icon: <RateChartIcon /> },
     { label: "Inventory", path: "/inventory", icon: <InventoryIcon /> },
-    { label: "Reports", path: "/reports/daily", icon: <ReportsIcon /> },
+    { label: "Reports", path: "/reports", icon: <ReportsIcon /> },
+    // { label: "Reports", path: "/reports/monthly", icon: <ReportsIcon /> },
   ];
 
   return (
@@ -233,6 +234,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
             <NavLink
               key={item.path}
               to={item.path}
+              // end={item.path !== "/reports"}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 [

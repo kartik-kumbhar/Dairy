@@ -4,7 +4,6 @@ import RateChartHistory from "../models/RateChartHistory.js";
 const DEFAULT_FATS = [3.0, 3.5, 4.0, 4.5, 5.0];
 const DEFAULT_SNFS = [7.0, 7.5, 8.0, 8.5, 9.0];
 
-
 // FAT slab calculation (per 0.1 fat)
 const calculateFatAmount = (fat, slabs = []) => {
   if (!slabs.length) return 0;
@@ -16,7 +15,7 @@ const calculateFatAmount = (fat, slabs = []) => {
       const usableFat = Math.min(fat, slab.to) - slab.from;
 
       if (usableFat > 0) {
-        total += (usableFat * 10) * slab.rate;
+        total += usableFat * 10 * slab.rate;
       }
     }
   }
@@ -52,11 +51,11 @@ const defaultRateChart = (milkType) => {
 
   const fatMin = 3.0;
   const fatMax = 5.0;
-  const fatStep = 0.2;
+  const fatStep = 0.1;
 
   const snfMin = 7.0;
   const snfMax = 9.0;
-  const snfStep = 0.2;
+  const snfStep = 0.1;
 
   const fats = generateRange(fatMin, fatMax, fatStep);
   const snfs = generateRange(snfMin, snfMax, snfStep);
@@ -203,47 +202,6 @@ export const updateRateChart = async (req, res) => {
   }
 };
 
-// export const getRateForMilk = async (req, res) => {
-//   try {
-//     const { milkType, fat, snf, date } = req.query;
-
-//     if (!milkType || !fat || !snf || !date) {
-//       return res.status(400).json({ message: "Missing parameters" });
-//     }
-
-//     const chart = await RateChart.findOne({
-//       milkType,
-//       effectiveFrom: { $lte: date },
-//     }).sort({ effectiveFrom: -1 });
-
-//     if (!chart) {
-//       return res.status(404).json({ message: "Rate chart not found" });
-//     }
-
-//     // const fatIndex = chart.fats.indexOf(Number(fat));
-//     // const snfIndex = chart.snfs.indexOf(Number(snf));
-//     const fatVal = Number(fat);
-//     const snfVal = Number(snf);
-
-//     const rate =
-//       chart.baseRate +
-//       calculateFatAmount(fatVal, chart.fatSlabs) +
-//       snfVal * chart.snfFactor;
-
-//     if (fatIndex === -1 || snfIndex === -1) {
-//       return res.status(404).json({ message: "Rate not defined for FAT/SNF" });
-//     }
-//     res.json({ rate: +rate.toFixed(2) });
-
-//     // res.json({
-//     //   rate: chart.rates[fatIndex][snfIndex],
-//     // });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 export const getRateForMilk = async (req, res) => {
   try {
     const { milkType, fat, snf, date } = req.query;
@@ -266,25 +224,19 @@ export const getRateForMilk = async (req, res) => {
 
     const fatAmount = calculateFatAmount(fatValue, chart.fatSlabs);
 
-    const rate =
-      chart.baseRate +
-      fatAmount +
-      snfValue * chart.snfFactor;
+    const rate = chart.baseRate + fatAmount + snfValue * chart.snfFactor;
 
     res.json({ rate: +rate.toFixed(2) });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
 
-
 const defaultFatSlabs = [
   { from: 3, to: 4, rate: 0.1 },
-  { from: 4, to: 5, rate: 0.15 },
-  { from: 5, to: 6, rate: 0.18 },
-  { from: 6, to: 7, rate: 0.2 },
-  { from: 7, to: 10, rate: 0.25 },
+  { from: 4, to: 5, rate: 0.1 },
+  { from: 5, to: 6, rate: 0.1 },
+  { from: 6, to: 7, rate: 0.1 },
+  { from: 7, to: 10, rate: 0.1 },
 ];
-

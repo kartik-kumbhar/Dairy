@@ -62,9 +62,8 @@ export function DataTable<T>({
       )}
     >
       {/* ================= DESKTOP TABLE VIEW ================= */}
-<div className="w-full overflow-x-auto scroll-smooth">
-<table className="min-w-[1100px] text-sm">
-          <thead className="bg-[#F8F4E3]">
+      <div className="w-full overflow-x-auto scroll-smooth">
+        <table className="w-full text-sm"><thead className="bg-[#F8F4E3]">
             <tr>
               {columns.map((col) => (
                 <th
@@ -80,9 +79,7 @@ export function DataTable<T>({
                 </th>
               ))}
             </tr>
-          </thead>
-
-          <tbody>
+          </thead><tbody>
             {loading ? (
               <tr>
                 <td
@@ -143,8 +140,7 @@ export function DataTable<T>({
                 </tr>
               ))
             )}
-          </tbody>
-        </table>
+          </tbody></table>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 // src/App.tsx
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import MainLayout from "./layout/mainLayout";
 
@@ -26,6 +26,12 @@ import BillManagementPage from "./pages/bills/billManagement";
 import MilkYieldReportPage from "./pages/reports/milkYieldReport";
 import BillingReportPage from "./pages/reports/billingReport";
 import InventoryReportPage from "./pages/reports/inventoryReport";
+import Settings from "./components/Settings";
+
+export const ReportsLayout = () => {
+  return <Outlet />;
+};
+
 
 const App: React.FC = () => {
   return (
@@ -40,6 +46,11 @@ const App: React.FC = () => {
         {/* Farmers */}
         <Route path="/farmers" element={<FarmerListPage />} />
         <Route path="/farmers/add" element={<AddFarmerPage />} />
+
+        {/*Setting */}
+        <Route path="/settings" element={<Settings isOpen={false} onClose={function (): void {
+          throw new Error("Function not implemented.");
+        } }/>}/>
 
         {/* Milk Collection (combined entry + list) */}
         <Route path="/milk-collection" element={<MilkEntryPage />} />
@@ -59,13 +70,15 @@ const App: React.FC = () => {
         <Route path="/rate-chart" element={<RateChartPage />} />
 
         {/* Reports */}
-        <Route path="/reports/daily" element={<DailyReportPage />} />
-        <Route path="/reports/monthly" element={<MonthlyReportPage />} />
-        <Route path="/reports/milk-yield" element={<MilkYieldReportPage />} />
-        <Route path="/reports/billing" element={<BillingReportPage />} />
-        <Route  path="/reports/inventory" element={<InventoryReportPage />}/>
+        <Route path="/reports" element={<ReportsLayout />}>
+          <Route index element={<Navigate to="daily" replace />} />
+          <Route path="monthly" element={<MonthlyReportPage />} />
 
-
+          <Route path="daily" element={<DailyReportPage />} />
+          <Route path="milk-yield" element={<MilkYieldReportPage />} />
+          <Route path="billing" element={<BillingReportPage />} />
+          <Route path="inventory" element={<InventoryReportPage />} />
+        </Route>
 
         {/* Bills */}
         <Route path="/bills" element={<BillManagementPage />} />

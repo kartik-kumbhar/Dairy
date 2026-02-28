@@ -130,11 +130,64 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const userName = "Admin";
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
-
+  const [showSettings, setShowSettings] = React.useState(false);
+  const settingsRef = React.useRef<HTMLDivElement>(null);
   const meta = getPageMeta(location.pathname);
 
+  const notificationRef = React.useRef<HTMLDivElement>(null);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+  const [isDark, setIsDark] = React.useState(
+    document.documentElement.classList.contains("dark"),
+  );
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+    setIsDark(!isDark);
+  };
+
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (settingsRef.current && !settingsRef.current.contains(target)) {
+        setShowSettings(false);
+      }
+
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(target)
+      ) {
+        setShowNotifications(false);
+      }
+
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <header className="flex items-center justify-between border-b border-[#E9E2C8] bg-white px-4 sm:px-6 py-3 shadow-sm">
+<header className="flex items-center justify-between border-b border-[#E9E2C8] bg-[#F8F4E3] px-4 sm:px-6 py-3 shadow-sm">      {" "}
       {/* LEFT SECTION */}
       <div className="flex items-start gap-3">
         {/* Hamburger (mobile only) */}
@@ -144,7 +197,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             console.log("Menu clicked"); // temporary debug
             onMenuClick();
           }}
-          className="lg:hidden rounded-md p-2 text-[#5E503F]/80 hover:bg-[#F8F4E3]"
+          className="lg:hidden rounded-md p-2 text-[#5E503F]/80 hover:bg-[#EDE4C5]"
         >
           <MenuIcon />
         </button>
@@ -171,49 +224,87 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           </div>
         </div>
       </div>
-
       {/* RIGHT SECTION */}
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden sm:flex items-center gap-2 rounded-full bg-[#F8F4E3] px-3 py-1 text-xs text-[#5E503F]/80">
+        <div className="hidden border border-[#E9E2C8] sm:flex items-center gap-2 rounded-full bg-[#F8F4E3] px-3 py-1 text-xs text-[#5E503F]/80">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <span>Online</span>
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={notificationRef}>
           <button
             onClick={() => {
               setShowNotifications((prev) => !prev);
               setShowUserMenu(false);
+              setShowSettings(false);
             }}
-            className="rounded-full p-2 text-[#5E503F]/70 hover:bg-[#F8F4E3]"
+            className="rounded-full p-2 text-[#5E503F]/70 hover:bg-[#EDE4C5]"
           >
             <BellIcon />
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-white shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-64 rounded-lg border border-[#E9E2C8] dark:border-gray-700 bg-[#F8F4E3] shadow-lg z-50 transition-colors duration-200">
+              {" "}
               <div className="p-3 text-sm font-semibold border-b">
                 Notifications
               </div>
-              <div className="p-3 text-sm text-gray-600">
+              <div className="p-3 text-sm text-[#5E503F]">
                 No new notifications
               </div>
             </div>
           )}
         </div>
 
-        <button
-          onClick={() => navigate("/settings")}
-          className="rounded-full p-2 text-[#5E503F]/70 hover:bg-[#F8F4E3]"
-        >
-          <GearIcon />
-        </button>
+        <div className="relative" ref={settingsRef}>
+          <button
+            onClick={() => {
+              setShowSettings((prev) => !prev);
+              setShowNotifications(false);
+              setShowUserMenu(false);
+            }}
+            className="rounded-full p-2 text-[#5E503F]/70 hover:bg-[#EDE4C5]"
+          >
+            <GearIcon />
+          </button>
 
-        <div className="relative">
+          {showSettings && (
+            <div className="absolute right-0 mt-2 w-64 sm:w-56 rounded-lg border bg-[#F8F4E3] dark:border-gray-700 shadow-lg z-50">
+              <div className="px-4 py-3 text-sm font-semibold border-b border-[#E9E2C8] dark:border-gray-700 text-[#5E503F] dark:text-[#5E503F]">
+                {" "}
+                Settings
+              </div>
+
+              <div className="flex items-center justify-between px-4 py-3  transition">
+                <span className="text-sm text-[#5E503F] dark:text-[#5E503F]">
+                  Theme
+                </span>
+
+                <button
+                  onClick={toggleTheme}
+                  className={`relative w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${
+                    isDark ? "bg-[#2A9D8F]" : "bg-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center text-xs ${
+                      isDark ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  >
+                    {isDark ? "🌙" : "🌞"}
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="relative" ref={userMenuRef}>
           <div
             onClick={() => {
               setShowUserMenu((prev) => !prev);
               setShowNotifications(false);
+              setShowSettings(false);
             }}
             className="flex cursor-pointer items-center gap-2 rounded-full border border-[#E9E2C8] bg-[#F8F4E3] px-2 sm:px-3 py-1"
           >
@@ -237,10 +328,11 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           </div>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-40 rounded-lg border bg-white shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-56 sm:w-64 rounded-xl border border-[#E9E2C8] dark:border-gray-700 bg-[#F8F4E3] shadow-xl z-50 transition-all duration-200">
+              {" "}
               <button
                 onClick={() => navigate("/profile")}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm border-[#E9E2C8]"
               >
                 Profile
               </button>
@@ -249,7 +341,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                   localStorage.removeItem("token");
                   navigate("/login");
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-red-500 "
               >
                 Logout
               </button>

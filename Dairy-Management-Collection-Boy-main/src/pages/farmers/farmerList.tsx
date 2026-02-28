@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import type { MilkType, FarmerStatus, MilkTypeUI } from "../../types/farmer";
 import type { Farmer } from "../../types/farmer";
 
+import { useDebounce } from "../../hooks/useDebounce";
+
 import InputField from "../../components/inputField";
 import StatCard from "../../components/statCard";
 import ConfirmModal from "../../components/confirmModal";
@@ -22,6 +24,12 @@ const FarmerListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"All" | FarmerStatus>("All");
   const [search, setSearch] = useState("");
 
+  //Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 100;
+
+  //////
+  const debounceSearch = useDebounce(search, 300);
   const [deleteTarget, setDeleteTarget] = useState<Farmer | null>(null);
 
   // edit modal
@@ -35,6 +43,10 @@ const FarmerListPage: React.FC = () => {
     reloadFarmers();
   }, [reloadFarmers]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentPage(1);
+  }, [milkFilter, statusFilter, debounceSearch]);
   // ---- Stats ----
   const stats = useMemo(() => {
     const total = allFarmers.length;
@@ -53,7 +65,7 @@ const FarmerListPage: React.FC = () => {
 
   // ---- Filtered list ----
   const filteredFarmers = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = debounceSearch.trim().toLowerCase();
     return allFarmers.filter((f) => {
       const matchesMilk =
         milkFilter === "All" ? true : f.milkType.includes(milkFilter);
@@ -67,7 +79,7 @@ const FarmerListPage: React.FC = () => {
         f.mobile.includes(term);
       return matchesMilk && matchesStatus && matchesSearch;
     });
-  }, [allFarmers, milkFilter, statusFilter, search]);
+  }, [allFarmers, milkFilter, statusFilter, debounceSearch]);
   const handleDelete = async () => {
     if (!deleteTarget) return;
 
@@ -91,6 +103,14 @@ const FarmerListPage: React.FC = () => {
     setEditMilkType(farmer.milkType);
     setEditAddress(farmer.address ?? "");
   };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredFarmers.length / itemsPerPage);
+
+  const paginatedFarmers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredFarmers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredFarmers, currentPage]);
 
   const toggleEditMilkType = (type: MilkTypeUI) => {
     setEditMilkType((prev) => {
@@ -292,7 +312,8 @@ const FarmerListPage: React.FC = () => {
         {/* Table – simple and perfectly aligned */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white shadow-sm">
           <div className="w-full overflow-x-auto scroll-smooth">
-            <table className="min-w-[900px] border-collapse text-sm">
+            <table className="w-full border-collapse text-sm">
+              {/* min-w-[900px] */}
               <thead className="bg-[#F8F4E3]">
                 <tr>
                   <th className="border-b border-[#E9E2C8] px-4 py-2 text-left text-xs font-semibold text-[#5E503F]">
@@ -330,7 +351,7 @@ const FarmerListPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredFarmers.map((f, index) => (
+                  paginatedFarmers.map((f, index) => (
                     <tr
                       key={f._id}
                       className={index % 2 === 0 ? "bg-white" : "bg-[#FDFCF8]"}
@@ -408,6 +429,37 @@ const FarmerListPage: React.FC = () => {
             </table>
           </div>
         </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 py-4">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 text-sm border rounded ${
+                  currentPage === i + 1 ? "bg-[#2A9D8F] text-white" : "bg-white"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Delete confirm – hooked up later when you implement delete */}

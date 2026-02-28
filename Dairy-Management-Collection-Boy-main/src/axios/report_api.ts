@@ -22,7 +22,7 @@ export type MilkEntry = {
   snf?: number;
   rate: number;
   totalAmount: number;
-  milkType: "cow" | "buffalo";
+  milkType: "cow" | "buffalo"|"mix";
 };
 
 export type DailyReportResponse = {
@@ -66,6 +66,10 @@ export type MilkYieldResponse = {
     amount: number;
   };
   buffalo: {
+    liters: number;
+    amount: number;
+  };
+  mix: {
     liters: number;
     amount: number;
   };

@@ -28,7 +28,9 @@ const MilkYieldReportPage: React.FC = () => {
   const [mode, setMode] = useState<Mode>("daily");
   const [date, setDate] = useState(today);
   const [month, setMonth] = useState(thisMonth);
-  const [data, setData] = useState<{ cow: any; buffalo: any } | null>(null);
+  const [data, setData] = useState<{ cow: any; buffalo: any; mix: any } | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<MilkEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
@@ -51,11 +53,12 @@ const MilkYieldReportPage: React.FC = () => {
 
         const res = await getMilkYieldReport(params);
 
-        const { cow, buffalo } = res.data;
+        const { cow, buffalo, mix } = res.data;
 
         setData({
           cow: cow ?? { liters: 0, amount: 0 },
           buffalo: buffalo ?? { liters: 0, amount: 0 },
+          mix: mix ?? { liters: 0, amount: 0 },
         });
 
         // setData({ cow, buffalo });
@@ -100,6 +103,10 @@ const MilkYieldReportPage: React.FC = () => {
     [entries],
   );
 
+  const mixEntries = useMemo(
+    () => entries.filter((e) => e.milkType === "mix"),
+    [entries],
+  );
   const columns: DataTableColumn<MilkEntry>[] = [
     { id: "date", header: "Date", accessor: "date", align: "center" },
     { id: "shift", header: "Shift", accessor: "shift", align: "center" },
@@ -108,7 +115,7 @@ const MilkYieldReportPage: React.FC = () => {
       header: "Farmer",
       align: "center",
 
-      cell: (row) => row.farmerId.name,
+      cell: (row) => (row.farmerId ? row.farmerId.name : "Deleted Farmer"),
     },
     {
       id: "liters",
@@ -178,6 +185,7 @@ const MilkYieldReportPage: React.FC = () => {
     doc.save("Cow-Milk.pdf");
   };
 
+  //Export buffalo PDF
   const exportBuffaloPDF = () => {
     if (!buffaloEntries.length) return toast.error("No buffalo records");
 
@@ -197,6 +205,40 @@ const MilkYieldReportPage: React.FC = () => {
     });
 
     doc.save("Buffalo-Milk.pdf");
+  };
+
+  // Export Excel
+  const exportMixExcel = () => {
+    if (!mixEntries.length) return toast.error("No mix records");
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows(mixEntries));
+    XLSX.utils.book_append_sheet(wb, ws, "Mix Milk");
+
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer]), "Mix-Milk.xlsx");
+  };
+
+  //Export PDF
+  const exportMixPDF = () => {
+    if (!mixEntries.length) return toast.error("No mix records");
+
+    const doc = new jsPDF();
+    doc.text("Mix Milk Report", 14, 10);
+
+    autoTable(doc, {
+      head: [["Date", "Shift", "Farmer", "Liters", "Amount"]],
+      body: mixEntries.map((e) => [
+        e.date,
+        e.shift,
+        e.farmerId?.name ?? "-",
+        e.quantity.toFixed(2),
+        `₹ ${e.totalAmount.toFixed(2)}`,
+      ]),
+      startY: 20,
+    });
+
+    doc.save("Mix-Milk.pdf");
   };
 
   return (
@@ -265,7 +307,8 @@ const MilkYieldReportPage: React.FC = () => {
         {loading || !data ? (
           <p className="text-sm text-[#5E503F]/60">Loading...</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {" "}
             <StatCard
               title="Cow Milk (L)"
               value={data.cow.liters.toFixed(2)}
@@ -277,6 +320,12 @@ const MilkYieldReportPage: React.FC = () => {
               value={data.buffalo.liters.toFixed(2)}
               subtitle={`₹ ${data.buffalo.amount.toFixed(2)}`}
               variant="blue"
+            />
+            <StatCard
+              title="Mix Milk (L)"
+              value={data.mix.liters.toFixed(2)}
+              subtitle={`₹ ${data.mix.amount.toFixed(2)}`}
+              variant="purple"
             />
           </div>
         )}
@@ -351,6 +400,43 @@ const MilkYieldReportPage: React.FC = () => {
 
                   <button
                     onClick={exportBuffaloPDF}
+                    className="rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-pdf"></i> PDF
+                  </button>
+                </div>
+              </div>
+
+               {/* Mix Milk Table */}
+              <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-[#5E503F]">
+                    Mix Milk Collection
+                  </h2>
+                  <span className="text-xs text-[#5E503F]/60">
+                    Total entries: {mixEntries.length}
+                  </span>
+                </div>
+
+                <DataTable
+                  data={mixEntries}
+                  columns={columns}
+                  keyField="_id"
+                  striped
+                  dense
+                  emptyMessage="No mix milk records found."
+                />
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={exportMixExcel}
+                    className="rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+                  >
+                    <i className="fa-solid fa-file-excel"></i> Excel
+                  </button>
+
+                  <button
+                    onClick={exportMixPDF}
                     className="rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
                   >
                     <i className="fa-solid fa-file-pdf"></i> PDF

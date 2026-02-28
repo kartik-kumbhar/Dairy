@@ -1,5 +1,11 @@
 // src/context/FarmerContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import type { Farmer, MilkType } from "../types/farmer";
 import { addFarmer as addFarmerAPI, getFarmers } from "../axios/farmer_api";
 
@@ -17,7 +23,6 @@ type FarmerContextValue = {
   loading: boolean;
 };
 
-
 const FarmerContext = createContext<FarmerContextValue | undefined>(undefined);
 
 export const FarmerProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -27,7 +32,7 @@ export const FarmerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState<boolean>(false);
 
   // Load farmers from backend
-  const reloadFarmers = async () => {
+  const reloadFarmers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getFarmers();
@@ -37,7 +42,7 @@ export const FarmerProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     reloadFarmers();
@@ -66,7 +71,9 @@ export const FarmerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <FarmerContext.Provider value={{ farmers, addFarmer, reloadFarmers, loading }}>
+    <FarmerContext.Provider
+      value={{ farmers, addFarmer, reloadFarmers, loading }}
+    >
       {children}
     </FarmerContext.Provider>
   );

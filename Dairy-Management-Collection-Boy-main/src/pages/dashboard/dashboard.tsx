@@ -155,7 +155,7 @@ const DashboardPage: React.FC = () => {
               {/* Cow */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
                 <p className="text-2xl font-bold">
-                  {(todayStats.cowLiters ?? 0).toLocaleString()}
+                  {(todayStats.cowLiters ?? 0).toLocaleString()} L
                 </p>
                 <span className="text-3xl">🐄</span>
               </div>

@@ -77,6 +77,7 @@ export const milkTypeReport = async (req, res) => {
     const result = {
       cow: { liters: 0, amount: 0 },
       buffalo: { liters: 0, amount: 0 },
+      mix: { liters: 0, amount: 0 },
     };
 
     data.forEach((d) => {
@@ -216,16 +217,21 @@ export const monthlyMilkReport = async (req, res) => {
       dayMap.get(e.date).amount += e.totalAmount;
 
       // per-farmer
+
+      if (!e.farmerId) return; // skip if farmer deleted
+
       const fId = e.farmerId._id.toString();
+
       if (!farmerMap.has(fId)) {
         farmerMap.set(fId, {
           farmerId: fId,
-          farmerCode: e.farmerId.code,
-          farmerName: e.farmerId.name,
+          farmerCode: e.farmerId.code ?? "N/A",
+          farmerName: e.farmerId.name ?? "Deleted Farmer",
           liters: 0,
           amount: 0,
         });
       }
+
       farmerMap.get(fId).liters += e.quantity;
       farmerMap.get(fId).amount += e.totalAmount;
     });

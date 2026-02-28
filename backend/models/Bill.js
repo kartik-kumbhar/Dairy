@@ -28,18 +28,18 @@ const billSchema = new mongoose.Schema(
       default: 0,
     },
     periodFrom: {
-      type: String, // YYYY-MM-DD
+      type: Date, // YYYY-MM-DD
       required: true,
     },
     periodTo: {
-      type: String, // YYYY-MM-DD
+      type: Date, // YYYY-MM-DD
       required: true,
     },
-    billMonth: {
-      type: String, // YYYY-MM
-      required: true,
-      index: true,
-    },
+    // billMonth: {
+    //   type: String, // YYYY-MM
+    //   required: true,
+    //   index: true,
+    // },
     status: {
       type: String,
       enum: ["Pending", "Paid"],
@@ -51,10 +51,6 @@ const billSchema = new mongoose.Schema(
 );
 
 // billSchema.index({ farmerId: 1, periodFrom: 1, periodTo: 1 }, { unique: true });
-billSchema.index(
-  { farmerId: 1, billMonth: 1 },
-  { unique: true }
-);
-
+billSchema.index({ farmerId: 1, periodFrom: 1, periodTo: 1 }, { unique: true });
 
 export default mongoose.model("Bill", billSchema);
