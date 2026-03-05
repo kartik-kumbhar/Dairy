@@ -4,7 +4,7 @@ import type { MilkType } from "../types/farmer";
 
 export type AddMilkRequest = {
   date: string;
-  shift: "Morning" | "Evening";
+  shift: "morning" | "evening";
   farmerId: string;
   quantity: number;
     milkType: MilkType;

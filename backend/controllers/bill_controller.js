@@ -44,21 +44,16 @@ export const getBills = async (req, res) => {
 export const generateBill = async (req, res) => {
   try {
     const { farmerId, periodFrom, periodTo } = req.body;
-    // Force periodFrom to first of month
-
-    // const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
-
-    // const billMonth = normalizedPeriodFrom.slice(0, 7);
 
     // 🚫 Prevent overlapping periods
-   const fromDate = new Date(periodFrom);
-const toDate = new Date(periodTo);
+    const fromDate = new Date(periodFrom);
+    const toDate = new Date(periodTo);
 
-const overlappingBill = await Bill.findOne({
-  farmerId,
-  periodFrom: { $lte: toDate },
-  periodTo: { $gte: fromDate },
-});
+    const overlappingBill = await Bill.findOne({
+      farmerId,
+      periodFrom: { $lte: toDate },
+      periodTo: { $gte: fromDate },
+    });
 
     if (overlappingBill) {
       return res.status(400).json({
@@ -106,24 +101,18 @@ const overlappingBill = await Bill.findOne({
 
     let netPayable = totalMilkAmount + totalBonus - totalDeduction;
 
-    // await Bill.findOneAndDelete({
-    //   farmerId,
-    //   billMonth,
-    // });
-
-    // 🔥 Get last unpaid bill
-   const lastUnpaidBill = await Bill.findOne({
-  farmerId,
-  status: "Pending",
-  periodTo: { $lt: periodFrom }, // only older bills
-}).sort({ periodTo: -1 });
+    // Get last unpaid bill
+    const lastUnpaidBill = await Bill.findOne({
+      farmerId,
+      status: "Pending",
+      periodTo: { $lt: periodFrom }, // only older bills
+    }).sort({ periodTo: -1 });
 
     let carryForwardAmount = 0;
 
     if (lastUnpaidBill) {
       carryForwardAmount = lastUnpaidBill.netPayable;
     }
-
 
     // 🔥 Add previous unpaid amount
     netPayable += carryForwardAmount;
@@ -133,8 +122,6 @@ const overlappingBill = await Bill.findOne({
       periodFrom,
       periodTo,
 
-
-      
       // billMonth: normalizedPeriodFrom.slice(0, 7),
       totalLiters,
       totalMilkAmount,
@@ -216,6 +203,7 @@ export const previewBill = async (req, res) => {
     milkAmount,
     deductionAmount,
     bonusAmount,
+
     netAmount: milkAmount + bonusAmount - deductionAmount,
   });
 };
@@ -266,6 +254,79 @@ export const markBillAsPaid = async (req, res) => {
     res.json({ message: "Bill marked as Paid" });
   } catch (err) {
     console.error("markBillAsPaid error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// In your backend controller (e.g., controllers/billController.js)
+export const getBillDetails = async (req, res) => {
+  try {
+    const { farmerId, periodFrom, periodTo } = req.body;
+
+    // 1. Fetch Milk Entries
+    const milkEntries = await Milk.find({
+      farmerId,
+      date: { $gte: periodFrom, $lte: periodTo },
+    }).sort({ date: 1 });
+
+    const morning = [];
+    const evening = [];
+
+    milkEntries.forEach((m) => {
+      const row = {
+        date: m.date,
+        liters: m.quantity,
+        fat: m.fat,
+        rate: m.rate,
+        amount: m.totalAmount,
+      };
+      if (m.shift === "Morning") morning.push(row);
+      else evening.push(row);
+    });
+
+    // 2. Fetch Detailed Deductions (Cash Advances, etc.)
+    const deductionList = await Deduction.find({
+      farmerId,
+      date: { $gte: periodFrom, $lte: periodTo },
+    });
+
+    // 3. Fetch Inventory Deductions (Animal Feed, etc.)
+    const inventoryList = await InventoryTransaction.find({
+      farmerId,
+      remainingAmount: { $gt: 0 },
+      paymentMethod: { $ne: "Cash" },
+      date: { $lte: new Date(periodTo) },
+    });
+
+    // 4. Fetch Bonuses
+    const bonusList = await Bonus.find({
+      farmerId,
+      date: { $gte: periodFrom, $lte: periodTo },
+    });
+
+    // Combine all deductions into a single array of objects
+    const formattedDeductions = [
+      ...deductionList.map((d) => ({
+        reason: d.reason || "कपात",
+        amount: d.amount,
+      })),
+      ...inventoryList.map((i) => ({
+        reason: i.itemName || "पशुखाद्य",
+        amount: i.remainingAmount,
+      })),
+    ];
+
+    res.json({
+      morning,
+      evening,
+      deductions: formattedDeductions,
+      bonuses: bonusList.map((b) => ({
+        type: b.type || "बोनस",
+        amount: b.amount,
+      })),
+    });
+  } catch (err) { 
+    console.error("getBillDetails error:", err);
     res.status(500).json({ message: err.message });
   }
 };

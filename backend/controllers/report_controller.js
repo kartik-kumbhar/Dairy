@@ -43,27 +43,18 @@ export const dailyMilkReport = async (req, res) => {
 ================================ */
 export const milkTypeReport = async (req, res) => {
   try {
-    const { date, from, to, month } = req.query;
+    const { from, to } = req.query;
 
-    let match = {};
-
-    //  Single date
-    if (date) {
-      match.date = date;
-    }
-
-    //  Date range
-    if (from && to) {
-      match.date = { $gte: from, $lte: to };
-    }
-
-    //  Month (YYYY-MM)
-    if (month) {
-      match.date = { $regex: `^${month}` };
+    if (!from || !to) {
+      return res.status(400).json({ message: "From and To required" });
     }
 
     const data = await Milk.aggregate([
-      { $match: match },
+      {
+        $match: {
+          date: { $gte: from, $lte: to },
+        },
+      },
       {
         $group: {
           _id: "$milkType",
@@ -73,7 +64,6 @@ export const milkTypeReport = async (req, res) => {
       },
     ]);
 
-    // Normalize response
     const result = {
       cow: { liters: 0, amount: 0 },
       buffalo: { liters: 0, amount: 0 },
@@ -97,23 +87,21 @@ export const milkTypeReport = async (req, res) => {
    3. BILLING REPORT
 ================================ */
 
-export const getMonthlyBillingReport = async (req, res) => {
+export const getBillingReportByRange = async (req, res) => {
   try {
-    const { month } = req.query; // YYYY-MM
-    if (!month) {
-      return res.status(400).json({ message: "Month is required" });
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ message: "From and To dates required" });
     }
 
-    // const bills = await Bill.find({ billMonth: month }).populate(
-    //   "farmerId",
-    //   "name mobile",
-    // );
-
-    const bills = await Bill.find({ billMonth: month })
+    const bills = await Bill.find({
+      periodFrom: { $lte: to },
+      periodTo: { $gte: from },
+    })
       .populate("farmerId", "name mobile")
       .lean();
 
-    // make safe if farmer deleted
     const safeBills = bills.map((b) => ({
       ...b,
       farmerId: b.farmerId ?? { name: "Deleted Farmer", mobile: "-" },
@@ -136,7 +124,8 @@ export const getMonthlyBillingReport = async (req, res) => {
     });
 
     res.json({
-      month,
+      from,
+      to,
       billCount: bills.length,
       ...totals,
       rows: safeBills,
@@ -175,20 +164,13 @@ export const inventoryReport = async (req, res) => {
    5. MONTHLY MILK COLLECTION REPORT
 ================================ */
 
-export const monthlyMilkReport = async (req, res) => {
+export const milkReportByRange = async (req, res) => {
   try {
-    const { month } = req.query; // "YYYY-MM"
-    if (!month) {
-      return res.status(400).json({ message: "Month is required" });
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ message: "From and To required" });
     }
-
-    const from = `${month}-01`;
-    const to = `${month}-31`;
-    // const from = `${month}-01`;
-
-    // const [year, mon] = month.split("-").map(Number);
-    // // last day of month trick
-    // const to = new Date(year, mon, 0).toISOString().slice(0, 10);
 
     const entries = await Milk.find({
       date: { $gte: from, $lte: to },
@@ -209,16 +191,15 @@ export const monthlyMilkReport = async (req, res) => {
       if (e.milkType === "cow") cowLiters += e.quantity;
       if (e.milkType === "buffalo") buffaloLiters += e.quantity;
 
-      // per-day
+      // per day
       if (!dayMap.has(e.date)) {
         dayMap.set(e.date, { date: e.date, liters: 0, amount: 0 });
       }
       dayMap.get(e.date).liters += e.quantity;
       dayMap.get(e.date).amount += e.totalAmount;
 
-      // per-farmer
-
-      if (!e.farmerId) return; // skip if farmer deleted
+      // per farmer
+      if (!e.farmerId) return;
 
       const fId = e.farmerId._id.toString();
 
@@ -237,7 +218,8 @@ export const monthlyMilkReport = async (req, res) => {
     });
 
     res.json({
-      month,
+      from,
+      to,
       totalLiters,
       totalAmount,
       cowLiters,
@@ -245,7 +227,7 @@ export const monthlyMilkReport = async (req, res) => {
       dayCount: dayMap.size,
       farmerCount: farmerMap.size,
       entryCount: entries.length,
-      entries,
+      entries, // 👈 ADD THIS LINE
       dayRows: Array.from(dayMap.values()).sort((a, b) =>
         a.date.localeCompare(b.date),
       ),
@@ -254,7 +236,6 @@ export const monthlyMilkReport = async (req, res) => {
       ),
     });
   } catch (err) {
-    console.error("Monthly report error:", err);
     res.status(500).json({ message: err.message });
   }
 };

@@ -22,7 +22,7 @@ export type MilkEntry = {
   snf?: number;
   rate: number;
   totalAmount: number;
-  milkType: "cow" | "buffalo"|"mix";
+  milkType: "cow" | "buffalo" | "mix";
 };
 
 export type DailyReportResponse = {
@@ -83,12 +83,16 @@ export const getDailyReport = (date: string) =>
     params: { date },
   });
 
-export const getMonthlyReport = (params: MonthlyReportParams) =>
-  api.get<MonthlyReportResponse>("/reports/monthly", { params });
+export const getBillingReportByRange = (from: string, to: string) => {
+  return api.get<MonthlyBillingReportResponse>("/reports/billing", {
+    params: { from, to },
+  });
+};
 
 export type MonthlyMilkReportResponse = {
-  month: string;
-
+  // month: string;
+  fromDate: string;
+  toDate: string;
   totalLiters: number;
   totalAmount: number;
   cowLiters: number;
@@ -114,10 +118,8 @@ export type MonthlyMilkReportResponse = {
   }[];
 };
 
-export const getMonthlyMilkReport = (month: string) =>
-  api.get<MonthlyMilkReportResponse>("/reports/monthly-milk", {
-    params: { month },
-  });
+export const getMilkEntriesByRange = (from: string, to: string) =>
+  api.get("/reports/milk-range", { params: { from, to } });
 
 export type MonthlyBillingReportResponse = {
   month: string;
@@ -144,5 +146,7 @@ export type MonthlyBillingReportResponse = {
   }[];
 };
 
-export const getMonthlyBillingReport = (month: string) =>
-  api.get<MonthlyBillingReportResponse>(`/reports/billing?month=${month}`);
+export const getMilkReportByRange = (from: string, to: string) =>
+  api.get<MonthlyMilkReportResponse>("/reports/milk-range", {
+    params: { from, to },
+  });

@@ -195,12 +195,42 @@ const FarmerListPage: React.FC = () => {
 
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <StatCard title="Total Farmers" value={stats.total} variant="teal" />
-          <StatCard title="Cow Milk" value={stats.cow} variant="red" />
-          <StatCard title="Buffalo Milk" value={stats.buffalo} variant="blue" />
-          <StatCard title="Mix Milk" value={stats.mix} variant="purple" />
-          <StatCard title="Active" value={stats.active} variant="green" />
-          <StatCard title="Inactive" value={stats.inactive} variant="orange" />
+          <StatCard
+            title="Total Farmers"
+            value={stats.total}
+            variant="teal"
+            subtitle={undefined}
+          />
+          <StatCard
+            title="Cow Milk"
+            value={stats.cow}
+            variant="red"
+            subtitle={undefined}
+          />
+          <StatCard
+            title="Buffalo Milk"
+            value={stats.buffalo}
+            variant="blue"
+            subtitle={undefined}
+          />
+          <StatCard
+            title="Mix Milk"
+            value={stats.mix}
+            variant="purple"
+            subtitle={undefined}
+          />
+          <StatCard
+            title="Active"
+            value={stats.active}
+            variant="green"
+            subtitle={undefined}
+          />
+          <StatCard
+            title="Inactive"
+            value={stats.inactive}
+            variant="orange"
+            subtitle={undefined}
+          />
         </div>
 
         {/* Filters */}

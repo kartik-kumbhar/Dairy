@@ -745,6 +745,7 @@ const RateChartPage: React.FC = () => {
             title="Min / Avg / Max Rate"
             value={`₹ ${stats.min} / ₹ ${stats.avg} / ₹ ${stats.max}`}
             variant="green"
+            subtitle={undefined}
           />
         </div>
 
@@ -889,6 +890,8 @@ const RateChartPage: React.FC = () => {
                 <span className="text-lg leading-none">＋</span>Add FAT Diff
               </button>
             </div>
+            <br />
+            <div className="border-t border-gray-300"></div>
 
             {/* Range SNF */}
             <h3 className="text-xs font-semibold text-[#5E503F] mt-4">

@@ -4,7 +4,7 @@ import StatCard from "../../components/statCard";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
 
 import ReportSwitcher from "../../components/ReportSwitcher";
-import { getMonthlyMilkReport } from "../../axios/report_api";
+import { getMilkReportByRange } from "../../axios/report_api";
 import type { MonthlyMilkReportResponse } from "../../axios/report_api";
 
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import toast from "react-hot-toast";
+import InputField from "../../components/inputField";
 
 interface DaySummary {
   date: string;
@@ -30,21 +31,29 @@ interface FarmerSummary {
 
 const MonthlyReportPage: React.FC = () => {
   const today = useMemo(() => new Date(), []);
-  const defaultMonth = useMemo(
-    () => today.toISOString().slice(0, 7), // YYYY-MM
-    [today],
-  );
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
   const [report, setReport] = useState<MonthlyMilkReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const tenDaysAgo = new Date();
+  tenDaysAgo.setDate(today.getDate() - 9);
+
+  const format = (d: Date) => d.toISOString().slice(0, 10);
+
+  const [fromDate, setFromDate] = useState(format(tenDaysAgo));
+  const [toDate, setToDate] = useState(format(today));
+
+  const addDays = (dateString: string, days: number) => {
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await getMonthlyMilkReport(selectedMonth);
+        const res = await getMilkReportByRange(fromDate, toDate);
         setReport(res.data);
       } catch (err) {
         console.error("Monthly report failed", err);
@@ -54,7 +63,7 @@ const MonthlyReportPage: React.FC = () => {
     };
 
     load();
-  }, [selectedMonth]);
+  }, [fromDate, toDate]);
 
   const dayColumns: DataTableColumn<DaySummary>[] = [
     {
@@ -104,16 +113,6 @@ const MonthlyReportPage: React.FC = () => {
     },
   ];
 
-  const monthLabel = useMemo(() => {
-    if (!selectedMonth) return "";
-    const [year, month] = selectedMonth.split("-");
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    return date.toLocaleDateString("en-GB", {
-      year: "numeric",
-      month: "long",
-    });
-  }, [selectedMonth]);
-
   /* ---------------- Daily Summary Export ---------------- */
 
   const exportDayExcel = () => {
@@ -131,14 +130,17 @@ const MonthlyReportPage: React.FC = () => {
     XLSX.utils.book_append_sheet(wb, ws, "Daily Summary");
     const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
 
-    saveAs(new Blob([buffer]), `Monthly-Daily-Summary-${selectedMonth}.xlsx`);
+    saveAs(
+      new Blob([buffer]),
+      `Monthly-Daily-Summary-${fromDate} → ${toDate}.xlsx`,
+    );
   };
 
   const exportDayPDF = () => {
     if (!report?.dayRows?.length) return toast.error("No daily summary data");
 
     const doc = new jsPDF();
-    doc.text(`Daily Summary - ${monthLabel}`, 14, 10);
+    doc.text(`Daily Summary - ${fromDate} → ${toDate}`, 14, 10);
 
     autoTable(doc, {
       head: [["Date", "Liters", "Amount"]],
@@ -150,7 +152,7 @@ const MonthlyReportPage: React.FC = () => {
       startY: 20,
     });
 
-    doc.save(`Monthly-Daily-Summary-${selectedMonth}.pdf`);
+    doc.save(`Monthly-Daily-Summary-${fromDate} → ${toDate}.pdf`);
   };
 
   /* ---------------- Farmer Summary Export ---------------- */
@@ -172,7 +174,10 @@ const MonthlyReportPage: React.FC = () => {
     XLSX.utils.book_append_sheet(wb, ws, "Farmer Summary");
     const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
 
-    saveAs(new Blob([buffer]), `Monthly-Farmer-Summary-${selectedMonth}.xlsx`);
+    saveAs(
+      new Blob([buffer]),
+      `Monthly-Farmer-Summary-${fromDate} → ${toDate}.xlsx`,
+    );
   };
 
   const exportFarmerPDF = () => {
@@ -180,7 +185,7 @@ const MonthlyReportPage: React.FC = () => {
       return toast.error("No farmer summary data");
 
     const doc = new jsPDF();
-    doc.text(`Farmer Summary - ${monthLabel}`, 14, 10);
+    doc.text(`Farmer Summary - ${fromDate} → ${toDate}`, 14, 10);
 
     autoTable(doc, {
       head: [["Code", "Farmer", "Liters", "Amount"]],
@@ -193,7 +198,7 @@ const MonthlyReportPage: React.FC = () => {
       startY: 20,
     });
 
-    doc.save(`Monthly-Farmer-Summary-${selectedMonth}.pdf`);
+    doc.save(`Monthly-Farmer-Summary-${fromDate} → ${toDate}.pdf`);
   };
 
   return (
@@ -209,15 +214,25 @@ const MonthlyReportPage: React.FC = () => {
               Summary of milk collection for selected month.
             </p>
           </div>
-          <div className="w-48">
-            <label className="text-xs font-medium text-[#5E503F]">
-              Select Month
-            </label>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[#E9E2C8] bg-white px-3 py-2 text-sm text-[#5E503F]"
+          <div className="flex gap-2">
+            <InputField
+              type="date"
+              label="From"
+              value={fromDate}
+              onChange={(e) => {
+                const newFrom = e.target.value;
+                setFromDate(newFrom);
+                setToDate(addDays(newFrom, 9));
+              }}
+              // className="rounded-md border px-3 py-2 text-sm"
+            />
+
+            <InputField
+              type="date"
+              value={toDate}
+              label="To"
+              onChange={(e) => setToDate(e.target.value)}
+              // className="rounded-md border px-3 py-2 text-sm"
             />
           </div>
         </div>
@@ -235,7 +250,7 @@ const MonthlyReportPage: React.FC = () => {
             onClick={() => navigate("/reports/monthly")}
             className="px-4 py-1.5 text-sm rounded-md bg-[#2A9D8F] text-white"
           >
-            Monthly
+            10 Days
           </button>
         </div>
 
@@ -244,13 +259,13 @@ const MonthlyReportPage: React.FC = () => {
           <StatCard
             title="Total Liters"
             value={report?.totalLiters.toFixed(2) ?? "0.00"}
-            subtitle={monthLabel}
+            subtitle={`${fromDate} → ${toDate}`}
             variant="teal"
           />
           <StatCard
             title="Total Amount (₹)"
             value={report?.totalAmount.toFixed(2) ?? "0.00"}
-            subtitle={monthLabel}
+            subtitle={`${fromDate} → ${toDate}`}
             variant="blue"
           />
           <StatCard
@@ -276,7 +291,7 @@ const MonthlyReportPage: React.FC = () => {
             <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-[#5E503F]">
-                  Daily Summary ({monthLabel})
+                  Daily Summary ({fromDate} → {toDate})
                 </h2>
                 <span className="text-xs text-[#5E503F]/60">
                   Total liters & amount by day.
@@ -312,7 +327,7 @@ const MonthlyReportPage: React.FC = () => {
               <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-[#5E503F]">
-                    Farmer Summary ({monthLabel})
+                    Farmer Summary ({fromDate} → {toDate})
                   </h2>
                   <span className="text-xs text-[#5E503F]/60">
                     Total liters & amount by farmer.

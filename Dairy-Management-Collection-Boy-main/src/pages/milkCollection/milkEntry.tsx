@@ -1,5 +1,5 @@
 // src/pages/milkCollection/milkEntry.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import InputField from "../../components/inputField";
 import Loader from "../../components/loader";
@@ -18,24 +18,23 @@ import type { Farmer, MilkType } from "../../types/farmer";
 import toast from "react-hot-toast";
 import ConfirmModal from "../../components/confirmModal";
 
-type DateFilterMode = "day" | "month" | "all";
+type DateFilterMode = "day" | "range" | "all";
 
 const getDefaultShift = (): MilkShift => {
   const now = new Date();
   const hour = now.getHours(); // 0–23
 
-  return hour < 12 ? "Morning" : "Evening";
+  return hour < 12 ? "morning" : "evening";
 };
 
+const addDays = (dateString: string, days: number) => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 const MilkEntryPage: React.FC = () => {
   const today = useMemo(() => new Date(), []);
   const todayISO = useMemo(() => today.toISOString().slice(0, 10), [today]);
-  const todayMonth = useMemo(
-    () => today.toISOString().slice(0, 7), // YYYY-MM
-    [today],
-  );
-
-  const farmerDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Farmers
   const [farmers, setFarmers] = useState<Farmer[]>([]);
@@ -55,9 +54,15 @@ const MilkEntryPage: React.FC = () => {
   const [loadingRate, setLoadingRate] = useState(false);
   const [milkType, setMilkType] = useState<MilkType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MilkCollection | null>(null);
-  const [isTypingFarmer, setIsTypingFarmer] = useState(false);
-
+  const [farmerSearch, setFarmerSearch] = useState("");
   const [remarks, setRemarks] = useState<string>("");
+
+  const tenDaysAgo = new Date();
+  tenDaysAgo.setDate(today.getDate() - 9);
+
+  const format = (d: Date) => d.toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState(format(tenDaysAgo));
+  const [toDate, setToDate] = useState(format(today));
 
   const [errors, setErrors] = useState<{
     date?: string;
@@ -72,9 +77,9 @@ const MilkEntryPage: React.FC = () => {
   // Filter state for list
   const [filterMode, setFilterMode] = useState<DateFilterMode>("day");
   const [filterDate, setFilterDate] = useState<string>(todayISO);
-  const [filterMonth, setFilterMonth] = useState<string>(todayMonth);
-  const [farmerSearch, setFarmerSearch] = useState("");
-  const [showFarmerDropdown, setShowFarmerDropdown] = useState(false);
+  // const [filterMonth, setFilterMonth] = useState<string>(todayMonth);
+  // const [filterFrom, setFilterFrom] = useState<string>(todayISO);
+  // const [filterTo, setFilterTo] = useState<string>(todayISO);
 
   const selectedFarmer = useMemo(
     () => farmers.find((f) => f._id === farmerId),
@@ -87,18 +92,14 @@ const MilkEntryPage: React.FC = () => {
   );
 
   const filteredFarmers = useMemo(() => {
-    const list = activeFarmers;
-
-    if (!farmerSearch) return list.slice(0, 25);
+    if (!farmerSearch.trim()) return [];
 
     const q = farmerSearch.toLowerCase();
 
-    return list
-      .filter(
-        (f) =>
-          f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q),
-      )
-      .slice(0, 25);
+    return activeFarmers.filter(
+      (f) =>
+        f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q),
+    );
   }, [activeFarmers, farmerSearch]);
 
   useEffect(() => {
@@ -245,7 +246,7 @@ const MilkEntryPage: React.FC = () => {
 
   const resetForm = () => {
     setDate(todayISO);
-    setShift("Morning");
+    setShift("morning");
     setFarmerId("");
     setLiters("");
     setFat("");
@@ -262,19 +263,23 @@ const MilkEntryPage: React.FC = () => {
       if (filterMode === "day") {
         return c.date === filterDate;
       }
-      if (filterMode === "month") {
-        return c.date.slice(0, 7) === filterMonth;
+
+      if (filterMode === "range") {
+        if (fromDate && c.date < fromDate) return false;
+        if (toDate && c.date > toDate) return false;
+        return true;
       }
-      return true; // "all"
+
+      return true; // all
     });
-  }, [collections, filterMode, filterDate, filterMonth]);
+  }, [collections, filterMode, filterDate, fromDate, toDate]);
 
   //Milk Container
   const totals = useMemo(() => {
     const result = {
-      cow: { Morning: 0, Evening: 0 },
-      buffalo: { Morning: 0, Evening: 0 },
-      mix: { Morning: 0, Evening: 0 },
+      cow: { morning: 0, evening: 0 },
+      buffalo: { morning: 0, evening: 0 },
+      mix: { morning: 0, evening: 0 },
     };
 
     filteredCollections.forEach((c) => {
@@ -297,20 +302,15 @@ const MilkEntryPage: React.FC = () => {
     };
   };
 
-  const cowMorning = generateContainers(totals.cow.Morning);
-  const cowEvening = generateContainers(totals.cow.Evening);
-  const buffaloMorning = generateContainers(totals.buffalo.Morning);
-  const buffaloEvening = generateContainers(totals.buffalo.Evening);
-  const mixMorning = generateContainers(totals.mix.Morning);
-  const mixEvening = generateContainers(totals.mix.Evening);
+  const cowMorning = generateContainers(totals.cow.morning);
+  const cowEvening = generateContainers(totals.cow.evening);
+  const buffaloMorning = generateContainers(totals.buffalo.morning);
+  const buffaloEvening = generateContainers(totals.buffalo.evening);
+  const mixMorning = generateContainers(totals.mix.morning);
+  const mixEvening = generateContainers(totals.mix.evening);
 
   // ---------- UI derived ----------
   const farmerCode = selectedFarmer?.code ?? "";
-
-  // const farmerOptions = farmers.map((f) => ({
-  //   label: `${f.code} - ${f.name}`,
-  //   value: f._id,
-  // }));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -327,20 +327,6 @@ const MilkEntryPage: React.FC = () => {
       toast.error("Failed to delete milk entry");
     }
   };
-
-  useEffect(() => {
-    const handleOutside = (e: MouseEvent) => {
-      if (!farmerDropdownRef.current) return;
-
-      if (!farmerDropdownRef.current.contains(e.target as Node)) {
-        setShowFarmerDropdown(false);
-        setIsTypingFarmer(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
 
   return (
     <div className="h-full w-full overflow-y-auto bg-[#F8F4E3] p-4 sm:p-5 lg:p-6">
@@ -385,91 +371,45 @@ const MilkEntryPage: React.FC = () => {
                     onChange={(e) => setShift(e.target.value as MilkShift)}
                     className="mt-1 w-full rounded-md border border-[#E9E2C8] bg-white px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F]"
                   >
-                    <option value="Morning">Morning</option>
-                    <option value="Evening">Evening</option>
+                    <option value="morning">Morning</option>
+                    <option value="evening">Evening</option>
                   </select>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="text-xs font-medium text-[#5E503F]">
-                    Farmer<span className="text-red-500">*</span>
+                    Farmer <span className="text-red-500">*</span>
                   </label>
-                  {/* <select
-                    value={farmerId}
-                    onChange={(e) => setFarmerId(e.target.value)}
-                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F] ${
-                      errors.farmerId ? "border-red-500" : "border-[#E9E2C8]"
-                    }`}
-                  >
-                    <option value="">Select farmer</option>
-                    {farmerOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select> */}
 
-                  <div className="relative" ref={farmerDropdownRef}>
-                    <input
-                      type="text"
-                      placeholder="Select or Search farmer name or code..."
-                      value={
-                        isTypingFarmer
-                          ? farmerSearch
-                          : selectedFarmer
-                            ? `${selectedFarmer.code} - ${selectedFarmer.name}`
-                            : farmerSearch
-                      }
-                      onFocus={() => {
-                        setShowFarmerDropdown(true);
-                        setIsTypingFarmer(true);
-                        setFarmerSearch(selectedFarmer?.code ?? "");
-                      }}
-                      onChange={(e) => {
-                        setFarmerSearch(e.target.value);
-                        setShowFarmerDropdown(true);
-                      }}
-                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F] ${
-                        errors.farmerId ? "border-red-500" : "border-[#E9E2C8]"
-                      }`}
-                    />
+                  {/* Search Input */}
+                  <input
+                    type="text"
+                    placeholder="Enter farmer name or code..."
+                    value={farmerSearch}
+                    onChange={(e) => {
+                      setFarmerSearch(e.target.value);
+                      setFarmerId("");
+                    }}
+                    className="mt-1 w-full rounded-md border border-[#E9E2C8] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2A9D8F]"
+                  />
 
-                    {showFarmerDropdown && (
-                      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-[#E9E2C8] bg-white shadow-lg">
-                        {filteredFarmers.length === 0 ? (
-                          <div className="px-3 py-2 text-xs text-[#5E503F]/60">
-                            No farmers found
-                          </div>
-                        ) : (
-                          filteredFarmers.map((f) => (
-                            <button
-                              key={f._id}
-                              type="button"
-                              onClick={() => {
-                                setFarmerId(f._id);
-                                setFarmerSearch("");
-                                setShowFarmerDropdown(false);
-                                setIsTypingFarmer(false);
-                              }}
-                              className="block w-full px-3 py-2 text-left text-sm hover:bg-[#F8F4E3]"
-                            >
-                              <span className="font-medium">{f.code}</span>
-                              <span className="text-[#5E503F]/70">
-                                {" "}
-                                — {f.name}
-                              </span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-
-                    {errors.farmerId && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {errors.farmerId}
-                      </p>
-                    )}
-                  </div>
+                  {/* Floating Dropdown */}
+                  {farmerSearch.trim() && filteredFarmers.length > 0 && (
+                    <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-[#E9E2C8] bg-white shadow-lg">
+                      {filteredFarmers.map((f) => (
+                        <div
+                          key={f._id}
+                          onClick={() => {
+                            setFarmerId(f._id);
+                            setFarmerSearch(`${f.code} - ${f.name}`);
+                          }}
+                          className="cursor-pointer px-3 py-2 text-sm hover:bg-[#F8F4E3]"
+                        >
+                          {f.code} - {f.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {errors.farmerId && (
                     <p className="mt-1 text-xs text-red-600">
@@ -858,17 +798,19 @@ const MilkEntryPage: React.FC = () => {
               >
                 Day
               </button>
+
               <button
                 type="button"
-                onClick={() => setFilterMode("month")}
+                onClick={() => setFilterMode("range")}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                  filterMode === "month"
+                  filterMode === "range"
                     ? "bg-[#2A9D8F] text-white"
                     : "bg-[#E9E2C8] text-[#5E503F]"
                 }`}
               >
-                Month
+                10 Days
               </button>
+
               <button
                 type="button"
                 onClick={() => setFilterMode("all")}
@@ -881,16 +823,6 @@ const MilkEntryPage: React.FC = () => {
                 All
               </button>
             </div>
-            {/* Day / Month inputs */}
-            {/* {filterMode === "day" && (
-              <InputField
-                label="Day"
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                containerClassName="w-40"
-              />
-            )} */}
             {filterMode === "day" && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-[#5E503F]">Day</span>
@@ -902,16 +834,30 @@ const MilkEntryPage: React.FC = () => {
                 />
               </div>
             )}
-            {filterMode === "month" && (
-              <div className="w-40">
-                <label className="text-xs font-medium text-[#5E503F]">
-                  Month
-                </label>
+            {filterMode === "range" && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#5E503F]">From</span>
                 <input
-                  type="month"
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-[#E9E2C8] bg-white px-3 py-2 text-sm text-[#5E503F] outline-none focus:ring-2 focus:ring-[#2A9D8F]"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => {
+                    const selectedFrom = e.target.value;
+                    setFromDate(selectedFrom);
+                    setToDate(addDays(selectedFrom, 9));
+                  }}
+                  className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs w-32 outline-none focus:ring-2 focus:ring-[#2A9D8F]"
+                />
+
+                <span className="text-xs font-medium text-[#5E503F]">To</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => {
+                    const selectedTo = e.target.value;
+                    setToDate(selectedTo);
+                    setFromDate(addDays(selectedTo, -9));
+                  }}
+                  className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs w-32 outline-none focus:ring-2 focus:ring-[#2A9D8F]"
                 />
               </div>
             )}

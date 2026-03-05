@@ -5,13 +5,12 @@ import InputField from "../../components/inputField";
 import ReportSwitcher from "../../components/ReportSwitcher";
 import {
   getDailyReport,
+  getMilkEntriesByRange,
   getMilkYieldReport,
-  getMonthlyMilkReport,
   type MilkEntry,
 } from "../../axios/report_api";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
-// import html2pdf from "html2pdf.js";
-// import { useRef } from "react";
+
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -22,12 +21,13 @@ import toast from "react-hot-toast";
 type Mode = "daily" | "monthly";
 
 const MilkYieldReportPage: React.FC = () => {
-  const today = new Date().toISOString().slice(0, 10);
-  const thisMonth = new Date().toISOString().slice(0, 7);
+  // const today = new Date().toISOString().slice(0, 10);
+  const today = new Date();
+
+  // const thisMonth = new Date().toISOString().slice(0, 7);
 
   const [mode, setMode] = useState<Mode>("daily");
-  const [date, setDate] = useState(today);
-  const [month, setMonth] = useState(thisMonth);
+  // const [month, setMonth] = useState(thisMonth);
   const [data, setData] = useState<{ cow: any; buffalo: any; mix: any } | null>(
     null,
   );
@@ -36,15 +36,31 @@ const MilkYieldReportPage: React.FC = () => {
   const [loadingEntries, setLoadingEntries] = useState(false);
   // const reportRef = useRef<HTMLDivElement>(null);
 
+  const format = (d: Date) => d.toISOString().slice(0, 10);
+
+  const tenDaysAgo = new Date();
+  tenDaysAgo.setDate(today.getDate() - 9);
+  const [date, setDate] = useState(format(today));
+
+  const [fromDate, setFromDate] = useState(format(tenDaysAgo));
+  const [toDate, setToDate] = useState(format(today));
+
+  const addDays = (dateString: string, days: number) => {
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
+
   const params = useMemo(() => {
     if (mode === "daily") {
       return { from: date, to: date };
     }
+
     return {
-      from: `${month}-01`,
-      to: `${month}-31`,
+      from: fromDate,
+      to: toDate,
     };
-  }, [mode, date, month]);
+  }, [mode, date, fromDate, toDate]);
 
   useEffect(() => {
     const load = async () => {
@@ -80,7 +96,7 @@ const MilkYieldReportPage: React.FC = () => {
           const res = await getDailyReport(date);
           setEntries(res.data.entries);
         } else {
-          const res = await getMonthlyMilkReport(month);
+          const res = await getMilkEntriesByRange(fromDate, toDate);
           setEntries(res.data.entries);
         }
       } catch (err) {
@@ -91,7 +107,7 @@ const MilkYieldReportPage: React.FC = () => {
     };
 
     loadEntries();
-  }, [mode, date, month]);
+  }, [mode, date, fromDate, toDate]);
 
   const cowEntries = useMemo(
     () => entries.filter((e) => e.milkType === "cow"),
@@ -265,12 +281,25 @@ const MilkYieldReportPage: React.FC = () => {
               />
             </div>
           ) : (
-            <div className="w-48">
+            <div className="flex gap-2">
               <InputField
-                label="Select Month"
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                type="date"
+                label="From"
+                value={fromDate}
+                onChange={(e) => {
+                  const newFrom = e.target.value;
+                  setFromDate(newFrom);
+                  setToDate(addDays(newFrom, 9));
+                }}
+                // className="rounded-md border px-3 py-2 text-sm"
+              />
+
+              <InputField
+                type="date"
+                value={toDate}
+                label="To"
+                onChange={(e) => setToDate(e.target.value)}
+                // className="rounded-md border px-3 py-2 text-sm"
               />
             </div>
           )}
@@ -299,7 +328,7 @@ const MilkYieldReportPage: React.FC = () => {
                 : "bg-[#E9E2C8] text-[#5E503F]"
             }`}
           >
-            Monthly
+            10 Days
           </button>
         </div>
 
@@ -407,7 +436,7 @@ const MilkYieldReportPage: React.FC = () => {
                 </div>
               </div>
 
-               {/* Mix Milk Table */}
+              {/* Mix Milk Table */}
               <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-[#5E503F]">

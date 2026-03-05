@@ -7,33 +7,47 @@ export const getTodayDashboardStats = async (req, res) => {
 
     const collections = await Milk.find({ date: today });
 
-    let totalLiters = 0;
-    let cowLiters = 0;
-    let buffaloLiters = 0;
-    let mixLiters = 0;
-    let amountToday = 0;
+    const result = {
+      morning: {
+        totalLiters: 0,
+        cow: 0,
+        buffalo: 0,
+        mix: 0,
+        amount: 0,
+      },
+      evening: {
+        totalLiters: 0,
+        cow: 0,
+        buffalo: 0,
+        mix: 0,
+        amount: 0,
+      },
+    };
 
     const farmerSet = new Set();
 
     collections.forEach((c) => {
-      totalLiters += c.quantity;
-      amountToday += c.totalAmount;
-      farmerSet.add(c.farmerId.toString());
+      const shift = c.shift === "evening" ? "evening" : "morning";
 
-      if (c.milkType === "cow") cowLiters += c.quantity;
-      if (c.milkType === "buffalo") buffaloLiters += c.quantity;
-      if (c.milkType === "mix") mixLiters += c.quantity;
+      result[shift].totalLiters += c.quantity || 0;
+      result[shift].amount += c.totalAmount || 0;
+
+      farmerSet.add(c.farmerId?.toString());
+
+      if (c.milkType === "cow") result[shift].cow += c.quantity || 0;
+      if (c.milkType === "buffalo") result[shift].buffalo += c.quantity || 0;
+      if (c.milkType === "mix") result[shift].mix += c.quantity || 0;
     });
 
     res.json({
-      totalLiters,
-      cowLiters,
-      buffaloLiters,
-      mixLiters,
+      morning: result.morning,
+      evening: result.evening,
       farmersToday: farmerSet.size,
-      amountToday,
+      totalLiters: result.morning.totalLiters + result.evening.totalLiters,
+      amountToday: result.morning.amount + result.evening.amount,
     });
   } catch (err) {
+    console.error("Today dashboard error:", err);
     res.status(500).json({ message: err.message });
   }
 };

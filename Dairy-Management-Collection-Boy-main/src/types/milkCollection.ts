@@ -1,7 +1,7 @@
 // src/types/milkCollection.ts
 import type { MilkType } from "./farmer";
 
-export type MilkShift = "Morning" | "Evening";
+export type MilkShift = "morning" | "evening";
 
 export interface MilkCollection {
   /** Unique internal id */

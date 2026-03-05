@@ -9,13 +9,20 @@ import { useNavigate } from "react-router-dom";
 import StatCard from "../../components/statCard";
 import toast from "react-hot-toast";
 
+type ShiftStats = {
+  totalLiters: number;
+  cow: number;
+  buffalo: number;
+  mix: number;
+  amount: number;
+};
+
 type TodayStats = {
-  totalLiters: number | null;
-  cowLiters: number | null;
-  buffaloLiters: number | null;
-  mixLiters: number | null;
-  farmersToday: number | null;
-  amountToday: number | null;
+  morning: ShiftStats;
+  evening: ShiftStats;
+  farmersToday: number;
+  totalLiters: number;
+  amountToday: number;
 };
 
 type MonthStats = {
@@ -26,22 +33,29 @@ type MonthStats = {
   mixPercent: number | null;
 };
 
-type TopFarmer = {
-  code: string;
-  name: string;
-  liters: number | null;
-  amount: number | null;
-};
+// type TopFarmer = {
+//   code: string;
+//   name: string;
+//   liters: number | null;
+//   amount: number | null;
+// };
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [todayStats, setTodayStats] = useState<TodayStats>({
+  const emptyShift = {
     totalLiters: 0,
-    cowLiters: 0,
-    buffaloLiters: 0,
-    mixLiters: 0,
+    cow: 0,
+    buffalo: 0,
+    mix: 0,
+    amount: 0,
+  };
+
+  const [todayStats, setTodayStats] = useState<TodayStats>({
+    morning: emptyShift,
+    evening: emptyShift,
     farmersToday: 0,
+    totalLiters: 0,
     amountToday: 0,
   });
 
@@ -53,7 +67,7 @@ const DashboardPage: React.FC = () => {
     mixPercent: 0,
   });
 
-  const [topFarmers, setTopFarmers] = useState<TopFarmer[]>([]);
+  // const [setTopFarmers] = useState<TopFarmer[]>([]);
 
   const quickActions = [
     {
@@ -81,7 +95,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const [todayRes, monthRes, farmersRes] = await Promise.all([
+        const [todayRes, monthRes] = await Promise.all([
           getTodayDashboardStats(),
           getMonthlyDashboardStats(),
           getTopFarmers(),
@@ -89,7 +103,7 @@ const DashboardPage: React.FC = () => {
 
         setTodayStats(todayRes.data || {});
         setMonthStats(monthRes.data || {});
-        setTopFarmers(farmersRes.data ?? []);
+        // setTopFarmers(farmersRes.data ?? []);
       } catch (err) {
         console.error("Dashboard load failed:", err);
 
@@ -112,21 +126,46 @@ const DashboardPage: React.FC = () => {
         </header>
 
         {/* Stat Cards */}
+        {/* Stat Cards */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Today's Collection */}
           <StatCard
             title="Today's Collection"
-            value={`${(todayStats.totalLiters ?? 0).toLocaleString()} L`}
-            subtitle={`${todayStats.farmersToday ?? 0} farmers today`}
+            value={`${todayStats.totalLiters.toLocaleString()} L`}
+            subtitle={
+              <div className="text-xs space-y-1">
+                <div>
+                  🌅 Morning: {todayStats.morning.totalLiters.toLocaleString()}{" "}
+                  L
+                </div>
+                <div>
+                  🌙 Evening: {todayStats.evening.totalLiters.toLocaleString()}{" "}
+                  L
+                </div>
+                <div>{todayStats.farmersToday} farmers today</div>
+              </div>
+            }
             variant="teal"
           />
 
+          {/* Today's Amount */}
           <StatCard
             title="Today's Amount"
-            value={`₹ ${(todayStats.amountToday ?? 0).toLocaleString()}`}
-            subtitle="Estimated payout"
+            value={`₹ ${todayStats.amountToday.toLocaleString()}`}
+            subtitle={
+              <div className="text-xs space-y-1">
+                <div>
+                  🌅 Morning: ₹{todayStats.morning.amount.toLocaleString()}
+                </div>
+                <div>
+                  🌙 Evening: ₹{todayStats.evening.amount.toLocaleString()}
+                </div>
+              </div>
+            }
             variant="blue"
           />
 
+          {/* Monthly Collection */}
           <StatCard
             title="Monthly Collection"
             value={`${(monthStats.totalLiters ?? 0).toLocaleString()} L`}
@@ -134,6 +173,7 @@ const DashboardPage: React.FC = () => {
             variant="orange"
           />
 
+          {/* Milk Type Ratio */}
           <StatCard
             title="Milk Type Ratio"
             value={`${monthStats.cowPercent ?? 0}% Cow / ${
@@ -145,66 +185,73 @@ const DashboardPage: React.FC = () => {
         </section>
 
         {/* Breakdown */}
-        <section className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-white p-5">
+        <section className="grid gap-4 lg:grid-cols-2">
+          {/* Morning */}
+          <div className="rounded-xl bg-white p-5">
             <h2 className="text-sm font-semibold text-[#5E503F]">
-              Today's Milk Breakdown
+             🌅 Morning Shift
             </h2>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              {/* Cow */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
-                <p className="text-2xl font-bold">
-                  {(todayStats.cowLiters ?? 0).toLocaleString()} L
+                <p className="text-xl font-bold">
+                  {todayStats.morning.cow.toLocaleString()} L
                 </p>
-                <span className="text-3xl">🐄</span>
+                <span className="text-2xl">🐄</span>
               </div>
 
-              {/* Buffalo */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
-                <p className="text-2xl font-bold">
-                  {(todayStats.buffaloLiters ?? 0).toLocaleString()} L
+                <p className="text-xl font-bold">
+                  {todayStats.morning.buffalo.toLocaleString()} L
                 </p>
-                <span className="text-3xl">🐃</span>
+                <span className="text-2xl">🐃</span>
               </div>
 
-              {/* Mix */}
               <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
-                <p className="text-2xl font-bold">
-                  {(todayStats.mixLiters ?? 0).toLocaleString()} L
+                <p className="text-xl font-bold">
+                  {todayStats.morning.mix.toLocaleString()} L
                 </p>
-                <span className="text-3xl">🥛</span>
+                <span className="text-2xl">🥛</span>
               </div>
             </div>
+
+            <p className="mt-4 font-semibold text-[#2A9D8F]">
+              Total: {todayStats.morning.totalLiters.toLocaleString()} L
+            </p>
           </div>
 
-          {/* Top Farmers */}
+          {/* Evening */}
           <div className="rounded-xl bg-white p-5">
             <h2 className="text-sm font-semibold text-[#5E503F]">
-              Top Farmers (This Month)
+              🌙 Evening Shift
             </h2>
 
-            <div className="mt-4 space-y-3">
-              {topFarmers.map((f, index) => (
-                <div
-                  key={index++}
-                  className="flex justify-between rounded-lg bg-[#F8F4E3] px-3 py-2"
-                >
-                  <div>
-                    <p className="font-semibold">{f.name}</p>
-                    <p className="text-xs">Code: {f.code}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs">
-                      {(f.liters ?? 0).toLocaleString()} L
-                    </p>
-                    <p className="font-semibold text-[#2A9D8F]">
-                      ₹{(f.amount ?? 0).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
+                <p className="text-xl font-bold">
+                  {todayStats.evening.cow.toLocaleString()} L
+                </p>
+                <span className="text-2xl">🐄</span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
+                <p className="text-xl font-bold">
+                  {todayStats.evening.buffalo.toLocaleString()} L
+                </p>
+                <span className="text-2xl">🐃</span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg bg-[#F8F4E3] p-4">
+                <p className="text-xl font-bold">
+                  {todayStats.evening.mix.toLocaleString()} L
+                </p>
+                <span className="text-2xl">🥛</span>
+              </div>
             </div>
+
+            <p className="mt-4 font-semibold text-[#2A9D8F]">
+              Total: {todayStats.evening.totalLiters.toLocaleString()} L
+            </p>
           </div>
         </section>
 

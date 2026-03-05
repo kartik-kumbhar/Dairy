@@ -113,7 +113,7 @@ const InventoryListPage: React.FC = () => {
       setItems(res.data);
 
       setSellItem(null);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error("Failed to sell item");
     }
@@ -391,8 +391,7 @@ const InventoryListPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[#5E503F]">
-            Inventory</h1>
+            <h1 className="text-2xl font-bold text-[#5E503F]">Inventory</h1>
             <p className="text-sm text-[#5E503F]/70">
               Track cattle feed, cans, reagents and other stock.
             </p>
@@ -412,6 +411,7 @@ const InventoryListPage: React.FC = () => {
             title="Total Items"
             value={stats.totalItems}
             variant="teal"
+            subtitle={undefined}
           />
           <StatCard
             title="Low Stock"
@@ -419,11 +419,17 @@ const InventoryListPage: React.FC = () => {
             subtitle="Below minimum level"
             variant="orange"
           />
-          <StatCard title="Out of Stock" value={stats.outStock} variant="red" />
+          <StatCard
+            title="Out of Stock"
+            value={stats.outStock}
+            variant="red"
+            subtitle={undefined}
+          />
           <StatCard
             title="Stock Value (₹)"
             value={(stats.stockValue ?? 0).toFixed(2)}
             variant="blue"
+            subtitle={undefined}
           />
         </div>
 

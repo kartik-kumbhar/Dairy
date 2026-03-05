@@ -1,6 +1,10 @@
 // src/pages/bills/billManagement.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import {
+  marathiFontBase64,
+  marathiFontBoldBase64,
+} from "../../utils/marathiFont";
 
 import InputField from "../../components/inputField";
 import SelectField from "../../components/selectField";
@@ -18,9 +22,10 @@ import { getFarmers } from "../../axios/farmer_api";
 import { generateBill, getBills } from "../../axios/bill_api";
 import { api } from "../../axios/axiosInstance";
 import toast from "react-hot-toast";
-
+// import myMarathiFont from './fonts/Hind-Regular.ttf'; // Example path
 type BillScope = "All" | "Single";
 
+// Update this interface to include optional details
 interface CalculatedBillRow {
   farmerId: string;
   farmerCode: string;
@@ -30,14 +35,27 @@ interface CalculatedBillRow {
   bonusAmount: number;
   deductionAmount: number;
   netAmount: number;
+  // Enhanced detail structure
+  details?: {
+    shifts: { day: string; m?: MilkEntry; e?: MilkEntry }[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deductions: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bonuses: any[];
+  };
+}
+
+interface MilkEntry {
+  date: string;
+  liters: number;
+  fat: number;
+  snf: number;
+  rate: number;
+  amount: number;
 }
 
 const BillManagementPage: React.FC = () => {
   const today = new Date();
-
-  // const todayISO = `${today.getFullYear()}-${String(
-  //   today.getMonth() + 1,
-  // ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const firstOfMonthISO = `${today.getFullYear()}-${String(
     today.getMonth() + 1,
@@ -52,8 +70,7 @@ const BillManagementPage: React.FC = () => {
   // Generate section state
   const [scope, setScope] = useState<BillScope>("All");
   const [selectedFarmerId, setSelectedFarmerId] = useState("");
-  // const [periodFrom] = useState<string>(firstOfMonthISO);
-  // const [periodTo, setPeriodTo] = useState<string>(todayISO);
+
   const [periodFrom, setPeriodFrom] = useState<string>(firstOfMonthISO);
   const [periodTo, setPeriodTo] = useState<string>(() => {
     const d = new Date(firstOfMonthISO);
@@ -171,12 +188,9 @@ const BillManagementPage: React.FC = () => {
 
     try {
       setCalculating(true);
-
       const rows: CalculatedBillRow[] = [];
-
       const farmersToProcess =
         scope === "Single" && selectedFarmer ? [selectedFarmer] : farmers;
-      // const normalizedPeriodFrom = periodFrom.slice(0, 7) + "-01";
 
       for (const f of farmersToProcess) {
         const res = await api.post("/bills/preview", {
@@ -185,8 +199,40 @@ const BillManagementPage: React.FC = () => {
           periodTo,
         });
 
-        if (res.data.netAmount === 0) {
-          continue;
+        if (res.data.netAmount === 0) continue;
+
+        let detailedObject = undefined;
+
+        if (scope === "Single") {
+          const detailsRes = await api.post("/bills/details", {
+            farmerId: f._id,
+            periodFrom,
+            periodTo,
+          });
+
+          // We assume the backend /bills/details also returns deductions and bonuses
+          // If not, you may need a separate call or ensure backend sends them
+          const dateMap = new Map<
+            string,
+            { day: string; m?: MilkEntry; e?: MilkEntry }
+          >();
+          detailsRes.data.morning.forEach((item: MilkEntry) => {
+            const d = item.date.split("T")[0].split("-")[2];
+            dateMap.set(d, { day: d, m: item });
+          });
+          detailsRes.data.evening.forEach((item: MilkEntry) => {
+            const d = item.date.split("T")[0].split("-")[2];
+            const existing = dateMap.get(d) || { day: d };
+            dateMap.set(d, { ...existing, e: item });
+          });
+
+          detailedObject = {
+            shifts: Array.from(dateMap.values()).sort(
+              (a, b) => parseInt(a.day) - parseInt(b.day),
+            ),
+            deductions: detailsRes.data.deductions || [], // NEW: Actual categories from backend
+            bonuses: detailsRes.data.bonuses || [],
+          };
         }
 
         rows.push({
@@ -198,13 +244,14 @@ const BillManagementPage: React.FC = () => {
           bonusAmount: res.data.bonusAmount,
           deductionAmount: res.data.deductionAmount,
           netAmount: res.data.netAmount,
+          details: detailedObject,
         });
       }
 
       setCalculatedRows(rows);
       setCalculatedTotalNet(rows.reduce((sum, r) => sum + r.netAmount, 0));
     } catch (err) {
-      console.error("Calculate bills failed:", err);
+      console.error(err);
       toast.error("Failed to calculate bills.");
     } finally {
       setCalculating(false);
@@ -371,7 +418,7 @@ const BillManagementPage: React.FC = () => {
       align: "center",
       cell: (row) => (
         <span className="text-xs text-[#5E503F] whitespace-nowrap">
-  {formatDate(row.periodFrom)} → {formatDate(row.periodTo)}
+          {formatDate(row.periodFrom)} → {formatDate(row.periodTo)}
         </span>
       ),
     },
@@ -464,40 +511,231 @@ const BillManagementPage: React.FC = () => {
   }));
 
   // Export PDF
-  const exportSingleBillPDF = () => {
+  // 1. Ensure you have the proper extended type for jsPDF
+  interface JsPDFWithAutoTable extends jsPDF {
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+
+  // 1. Define specific interfaces for Deductions and Bonuses
+  interface DeductionEntry {
+    reason?: string;
+    itemName?: string;
+    amount: number;
+  }
+
+  interface BonusEntry {
+    type?: string;
+    amount: number;
+  }
+
+  // 2. Ensure jsPDF is extended to include the autoTable property
+  interface JsPDFWithAutoTable extends jsPDF {
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+
+  const exportSingleBillPDF = async () => {
     if (scope !== "Single" || calculatedRows.length !== 1) {
       toast.error("PDF available only for single farmer bill.");
       return;
     }
 
-    const row = calculatedRows[0];
-    const doc = new jsPDF();
+    const row: CalculatedBillRow = calculatedRows[0];
 
-    doc.setFontSize(16);
-    doc.text("Milk Bill", 14, 15);
+    try {
+      if (!marathiFontBase64 || marathiFontBase64.length < 10000) {
+        throw new Error("Invalid Marathi font data.");
+      }
 
-    doc.setFontSize(11);
-    doc.text(`Farmer: ${row.farmerName}`, 14, 25);
-    doc.text(`Code: ${row.farmerCode}`, 14, 32);
-    doc.text(`Period: ${periodFrom} to ${periodTo}`, 14, 39);
+      // Fetch the full details from the backend
+      const res = await api.post("/bills/details", {
+        farmerId: row.farmerId,
+        periodFrom,
+        periodTo,
+      });
 
-    autoTable(doc, {
-      startY: 50,
-      head: [["Description", "Amount (₹)"]],
-      body: [
-        ["Total Liters", row.liters.toFixed(2)],
-        ["Milk Amount", row.milkAmount.toFixed(2)],
-        ["Bonus", row.bonusAmount.toFixed(2)],
-        ["Deduction", row.deductionAmount.toFixed(2)],
-        ["Net Payable", row.netAmount.toFixed(2)],
-      ],
-    });
+      const morning: MilkEntry[] = res.data.morning;
+      const evening: MilkEntry[] = res.data.evening;
+      // Deductions now contain { reason, amount } from your updated backend
+      const deductions: DeductionEntry[] = res.data.deductions || [];
+      const bonuses: BonusEntry[] = res.data.bonuses || [];
 
-    doc.save(`Bill-${row.farmerCode}-${periodFrom.slice(0, 7)}.pdf`);
+      const doc = new jsPDF("p", "mm", "a4") as JsPDFWithAutoTable;
 
-    toast.success("PDF generated successfully");
+      // REGISTER FONTS
+      doc.addFileToVFS("MarathiFont.ttf", marathiFontBase64);
+      doc.addFont("MarathiFont.ttf", "MarathiFont", "normal");
+      doc.addFileToVFS("MarathiFontBold.ttf", marathiFontBoldBase64);
+      doc.addFont("MarathiFontBold.ttf", "MarathiFont", "bold");
+      doc.setFont("MarathiFont", "normal");
+
+      // HEADER SECTION (Plain Black Text)
+      doc.setFontSize(18);
+      doc.text("शिवशंभू दूध डेअरी", 105, 15, { align: "center" });
+
+      doc.setFontSize(10);
+      doc.text(`बिल दिनांक: ${formatDate(new Date().toISOString())}`, 195, 22, {
+        align: "right",
+      });
+      doc.text(
+        `कालावधी: ${formatDate(periodFrom)} - ${formatDate(periodTo)}`,
+        105,
+        22,
+        { align: "center" },
+      );
+      doc.text(`बिल नं: ${row.farmerCode}/12`, 15, 22);
+
+      // FARMER INFO
+      doc.setDrawColor(0);
+      doc.line(10, 25, 200, 25);
+      doc.text(
+        `उत्पादकाचे नांव: ${row.farmerCode} - ${row.farmerName}`,
+        15,
+        30,
+      );
+      doc.text(`शाखा: मुख्य शाखा`, 195, 30, { align: "right" });
+      doc.line(10, 33, 200, 33);
+
+      // DATA MAPPING
+      const dateMap = new Map<string, { m?: MilkEntry; e?: MilkEntry }>();
+      morning.forEach((item) => {
+        const d = formatDate(item.date).split("-")[0];
+        dateMap.set(d, { ...dateMap.get(d), m: item });
+      });
+      evening.forEach((item) => {
+        const d = formatDate(item.date).split("-")[0];
+        dateMap.set(d, { ...dateMap.get(d), e: item });
+      });
+
+      const sortedDays = Array.from(dateMap.keys()).sort(
+        (a, b) => parseInt(a) - parseInt(b),
+      );
+
+      // MAIN TABLE - 11 Columns with categorical deductions
+      const tableBody: string[][] = sortedDays.map((day, index) => {
+        const entry = dateMap.get(day);
+        const deduct = deductions[index] || {};
+        return [
+          day,
+          entry?.m?.liters?.toFixed(2) ?? "",
+          entry?.m?.fat?.toFixed(1) ?? "",
+          entry?.m?.rate?.toFixed(2) ?? "",
+          entry?.m?.amount?.toFixed(2) ?? "",
+          entry?.e?.liters?.toFixed(2) ?? "",
+          entry?.e?.fat?.toFixed(1) ?? "",
+          entry?.e?.rate?.toFixed(2) ?? "",
+          entry?.e?.amount?.toFixed(2) ?? "",
+          deduct.reason ?? "", // CATEGORY (e.g. पशुखाद्य)
+          deduct.amount ? deduct.amount.toFixed(2) : "",
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 38,
+        styles: {
+          font: "MarathiFont",
+          fontSize: 7,
+          halign: "center",
+          textColor: 0,
+          lineWidth: 0.1,
+          lineColor: 0,
+        },
+        headStyles: {
+          font: "MarathiFont",
+          fontStyle: "bold",
+          fillColor: false, // NO Background Color
+          textColor: 0,
+          lineWidth: 0.1,
+          lineColor: 0,
+        },
+        head: [
+          [
+            { content: "दिनांक", rowSpan: 2, styles: { valign: "middle" } },
+            { content: "सकाळ (Morning)", colSpan: 4 },
+            { content: "सायंकाळ (Evening)", colSpan: 4 },
+            { content: "कपाती (Deductions)", colSpan: 2 },
+          ],
+          [
+            "लिटर",
+            "फॅट",
+            "दर",
+            "रक्कम",
+            "लिटर",
+            "फॅट",
+            "दर",
+            "रक्कम",
+            "तपशील",
+            "रक्कम",
+          ],
+        ],
+        body: tableBody,
+        theme: "grid",
+      });
+
+      // SUMMARY FOOTER
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        styles: {
+          font: "MarathiFont",
+          fontSize: 9,
+          textColor: 0,
+          lineWidth: 0.1,
+          lineColor: 0,
+        },
+        body: [
+          [
+            `एकूण लिटर: ${row.liters.toFixed(2)}`,
+            `दूध रक्कम: ₹ ${row.milkAmount.toFixed(2)}`,
+            `कपात: ₹ ${row.deductionAmount.toFixed(2)}`,
+          ],
+          [
+            `सरासरी फॅट: ${row.liters > 0 ? (row.milkAmount / row.liters / 6).toFixed(1) : "0.0"}`,
+            `बोनस: ₹ ${row.bonusAmount.toFixed(2)}`,
+            {
+              content: `निव्वळ देय: ₹ ${row.netAmount.toFixed(2)}`,
+              styles: { fontStyle: "bold", fontSize: 10 },
+            },
+          ],
+        ],
+        theme: "plain",
+      });
+
+      // FIX: Use 'bonuses' variable to resolve ESLint warning
+      if (bonuses.length > 0) {
+        doc.setFontSize(8);
+        let bonusY: number = doc.lastAutoTable.finalY + 2;
+        bonuses.forEach((b: BonusEntry) => {
+          doc.text(
+            `* ${b.type || "बोनस"}: ₹${b.amount.toFixed(2)}`,
+            15,
+            bonusY,
+          );
+          bonusY += 4;
+        });
+      }
+
+      doc.setFontSize(10);
+      doc.text(
+        "चुकभुल देणेघेणे - धन्यवाद",
+        105,
+        doc.lastAutoTable.finalY + 12,
+        { align: "center" },
+      );
+
+      doc.save(`Dairy-Bill-${row.farmerCode}.pdf`);
+      toast.success("Marathi PDF Generated!");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("PDF generation failed:", err.message);
+        toast.error(err.message);
+      } else {
+        toast.error("Something went wrong.");
+      }
+    }
   };
-
   // WhatsApp
   const sendBillViaWhatsApp = () => {
     if (scope !== "Single" || calculatedRows.length !== 1) {
@@ -558,17 +796,26 @@ Thank you.
             title="Total Bills"
             value={billStats.totalBills}
             variant="teal"
+            subtitle={undefined}
           />
           <StatCard
             title="Pending Bills"
             value={billStats.pending}
             variant="orange"
+            subtitle={undefined}
           />
-          <StatCard title="Paid Bills" value={billStats.paid} variant="green" />
+
+          <StatCard
+            title="Paid Bills"
+            value={billStats.paid}
+            variant="green"
+            subtitle={undefined}
+          />
           <StatCard
             title="Total Billed (₹)"
             value={billStats.totalAmount.toFixed(2)}
             variant="blue"
+            subtitle={undefined}
           />
         </div>
 
@@ -661,15 +908,181 @@ Thank you.
               </div>
             ) : (
               <>
-                <div className="w-full overflow-x-auto ">
-                  <DataTable
-                    data={calculatedRows}
-                    columns={previewColumns}
-                    keyField="farmerId"
-                    striped
-                    dense
-                  />
-                </div>
+                {scope === "Single" && calculatedRows[0]?.details ? (
+                  <div className="space-y-6">
+                    {/* --- MAIN COLLECTION TABLE --- */}
+                    <div className="w-full overflow-x-auto border border-[#E9E2C8] rounded-lg shadow-sm">
+                      <table className="w-full text-[11px] text-center border-collapse bg-white">
+                        <thead className="bg-[#F8F4E3] text-[#5E503F] font-bold">
+                          <tr>
+                            <th
+                              rowSpan={2}
+                              className="border border-[#E9E2C8] p-2"
+                            >
+                              दिनांक
+                            </th>
+                            <th
+                              colSpan={4}
+                              className="border border-[#E9E2C8] p-1 bg-[#2A9D8F]/10"
+                            >
+                              सकाळ (Morning)
+                            </th>
+                            <th
+                              colSpan={4}
+                              className="border border-[#E9E2C8] p-1 bg-[#E76F51]/10"
+                            >
+                              सायंकाळ (Evening)
+                            </th>
+                          </tr>
+                          <tr>
+                            <th className="border border-[#E9E2C8] p-1">
+                              लिटर
+                            </th>
+                            <th className="border border-[#E9E2C8] p-1">फॅट</th>
+                            <th className="border border-[#E9E2C8] p-1">दर</th>
+                            <th className="border border-[#E9E2C8] p-1">
+                              रक्कम
+                            </th>
+                            <th className="border border-[#E9E2C8] p-1">
+                              लिटर
+                            </th>
+                            <th className="border border-[#E9E2C8] p-1">फॅट</th>
+                            <th className="border border-[#E9E2C8] p-1">दर</th>
+                            <th className="border border-[#E9E2C8] p-1">
+                              रक्कम
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calculatedRows[0].details.shifts.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="border border-[#E9E2C8] p-1 font-bold">
+                                {row.day}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.m?.liters.toFixed(2) || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.m?.fat || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.m?.rate.toFixed(2) || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1 text-[#2A9D8F] font-medium">
+                                {row.m?.amount.toFixed(2) || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.e?.liters.toFixed(2) || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.e?.fat || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1">
+                                {row.e?.rate.toFixed(2) || "-"}
+                              </td>
+                              <td className="border border-[#E9E2C8] p-1 text-[#E76F51] font-medium">
+                                {row.e?.amount.toFixed(2) || "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* --- DEDUCTIONS AND BONUSES SIDE-BY-SIDE --- */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Deductions Card */}
+                      <div className="border border-[#E9E2C8] rounded-lg bg-white overflow-hidden">
+                        <div className="bg-red-50 p-2 border-b border-[#E9E2C8] text-red-700 font-bold text-xs">
+                          कपाती (Deductions)
+                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-600">
+                              <th className="p-2 text-left border-b">
+                                तपशील (Item)
+                              </th>
+                              <th className="p-2 text-right border-b">
+                                रक्कम (Amount)
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* If details.deductions is empty, show summary total */}
+                            {calculatedRows[0].details.deductions.length > 0 ? (
+                              calculatedRows[0].details.deductions.map(
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (d: any, i: number) => (
+                                  <tr
+                                    key={i}
+                                    className="border-b last:border-0"
+                                  >
+                                    <td className="p-2">
+                                      {d.reason || d.itemName || "Deduction"}
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      ₹ {d.amount.toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ),
+                              )
+                            ) : (
+                              <tr>
+                                <td className="p-2 italic text-gray-400">
+                                  No specific deductions
+                                </td>
+                                <td className="p-2 text-right font-bold">
+                                  ₹{" "}
+                                  {calculatedRows[0].deductionAmount.toFixed(2)}
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Bonus Card */}
+                      <div className="border border-[#E9E2C8] rounded-lg bg-white overflow-hidden">
+                        <div className="bg-green-50 p-2 border-b border-[#E9E2C8] text-green-700 font-bold text-xs">
+                          बोनस (Bonuses / Extras)
+                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-600">
+                              <th className="p-2 text-left border-b">
+                                तपशील (Item)
+                              </th>
+                              <th className="p-2 text-right border-b">
+                                रक्कम (Amount)
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b">
+                              <td className="p-2 font-medium text-gray-700">
+                                Total Milk Bonus
+                              </td>
+                              <td className="p-2 text-right text-green-600 font-bold">
+                                ₹ {calculatedRows[0].bonusAmount.toFixed(2)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // --- STANDARD SUMMARY TABLE ---
+                  <div className="w-full overflow-x-auto">
+                    <DataTable
+                      data={calculatedRows}
+                      columns={previewColumns}
+                      keyField="farmerId"
+                      striped
+                      dense
+                    />
+                  </div>
+                )}
 
                 {/* ////////////////////////////////////////// */}
                 <div className="mb-3 flex items-center justify-between">

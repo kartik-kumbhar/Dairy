@@ -223,17 +223,25 @@ const InventoryReportPage: React.FC = () => {
             title="Total Items"
             value={stats.totalItems}
             variant="teal"
+            subtitle={undefined}
           />
-          <StatCard title="Low Stock" value={stats.lowStock} variant="orange" />
+          <StatCard
+            title="Low Stock"
+            value={stats.lowStock}
+            variant="orange"
+            subtitle={undefined}
+          />
           <StatCard
             title="Out of Stock"
             value={stats.outOfStock}
             variant="red"
+            subtitle={undefined}
           />
           <StatCard
             title="Stock Value (₹)"
             value={stats.stockValue.toFixed(2)}
             variant="blue"
+            subtitle={undefined}
           />
         </div>
 
@@ -249,7 +257,6 @@ const InventoryReportPage: React.FC = () => {
               ? "No inventory updates found for selected date."
               : "No inventory updates found for selected month."
           }
-          
         />
         <div className="mt-0 flex justify-end gap-2">
           <button

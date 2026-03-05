@@ -3,8 +3,8 @@ import {
   dailyMilkReport,
   milkTypeReport,
   inventoryReport,
-  monthlyMilkReport,
-  getMonthlyBillingReport,
+  getBillingReportByRange,
+  milkReportByRange,
 } from "../controllers/report_controller.js";
 
 const router = express.Router();
@@ -12,8 +12,7 @@ const router = express.Router();
 router.get("/daily-milk", dailyMilkReport);
 router.get("/milk-type", milkTypeReport);
 router.get("/inventory", inventoryReport);
-router.get("/monthly-milk", monthlyMilkReport);
-router.get("/billing", getMonthlyBillingReport);
-
+router.get("/milk-range", milkReportByRange);
+router.get("/billing", getBillingReportByRange);
 
 export default router;

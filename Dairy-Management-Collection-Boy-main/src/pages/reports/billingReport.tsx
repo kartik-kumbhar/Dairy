@@ -2,30 +2,40 @@ import React, { useEffect, useState } from "react";
 import StatCard from "../../components/statCard";
 import DataTable, { type DataTableColumn } from "../../components/dataTable";
 import ReportSwitcher from "../../components/ReportSwitcher";
-import { getMonthlyBillingReport } from "../../axios/report_api";
+import { getBillingReportByRange } from "../../axios/report_api";
 import type { MonthlyBillingReportResponse } from "../../axios/report_api";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import toast from "react-hot-toast";
+import InputField from "../../components/inputField";
 
 const BillingReportPage: React.FC = () => {
   const today = new Date();
-  const defaultMonth = `${today.getFullYear()}-${String(
-    today.getMonth() + 1,
-  ).padStart(2, "0")}`;
-  const [month, setMonth] = useState(defaultMonth);
+  const addDays = (dateString: string, days: number) => {
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
   const [report, setReport] = useState<MonthlyBillingReportResponse | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
+  // const today = new Date();
+  const tenDaysAgo = new Date();
+  tenDaysAgo.setDate(today.getDate() - 9);
 
+  const format = (d: Date) => d.toISOString().slice(0, 10);
+
+  const [fromDate, setFromDate] = useState(format(tenDaysAgo));
+  const [toDate, setToDate] = useState(format(today));
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await getMonthlyBillingReport(month);
+
+        const res = await getBillingReportByRange(fromDate, toDate);
         setReport(res.data);
       } catch (err) {
         console.error("Billing report failed", err);
@@ -34,7 +44,7 @@ const BillingReportPage: React.FC = () => {
       }
     };
     load();
-  }, [month]);
+  }, [fromDate, toDate]);
 
   const columns: DataTableColumn<
     MonthlyBillingReportResponse["rows"][number]
@@ -115,7 +125,7 @@ const BillingReportPage: React.FC = () => {
     XLSX.utils.book_append_sheet(wb, ws, "Billing Report");
 
     const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer]), `Billing-Report-${month}.xlsx`);
+    saveAs(new Blob([buffer]), `Billing-Report-${fromDate} to ${toDate}.xlsx`);
   };
 
   //Export PDF
@@ -123,7 +133,7 @@ const BillingReportPage: React.FC = () => {
     if (!report?.rows?.length) return toast.error("No billing records");
 
     const doc = new jsPDF();
-    doc.text(`Billing Report - ${month}`, 14, 10);
+    doc.text(`Billing Report - ${fromDate} to ${toDate}`, 14, 10);
 
     autoTable(doc, {
       head: [
@@ -141,7 +151,7 @@ const BillingReportPage: React.FC = () => {
       startY: 20,
     });
 
-    doc.save(`Billing-Report-${month}.pdf`);
+    doc.save(`Billing-Report-${fromDate} to ${toDate}.pdf`);
   };
 
   return (
@@ -157,27 +167,61 @@ const BillingReportPage: React.FC = () => {
             </p>
           </div>
 
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-md border px-3 py-2 text-sm"
-          />
+          <div className="flex gap-2">
+            <InputField
+              type="date"
+              label="From"
+              value={fromDate}
+              onChange={(e) => {
+                const selectedFrom = e.target.value;
+                setFromDate(selectedFrom);
+
+                // auto set To = From + 9 days (10 day total range)
+                const autoTo = addDays(selectedFrom, 9);
+                setToDate(autoTo);
+              }}
+            />
+            <InputField
+              type="date"
+              label="To"
+              value={toDate}
+              // onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => {
+                const selectedTo = e.target.value;
+                setToDate(selectedTo);
+
+                // auto set From = To - 9 days (10 day total range)
+                const autoFrom = addDays(selectedTo, -9);
+                setFromDate(autoFrom);
+              }}
+              // className="rounded-md border px-3 py-2 text-sm"
+            />
+          </div>
         </div>
         <ReportSwitcher />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Bills" value={report?.billCount ?? 0} />
+          <StatCard
+            title="Bills"
+            value={report?.billCount ?? 0}
+            subtitle="Total generated bills"
+          />
+
           <StatCard
             title="Milk Amount"
             value={`₹ ${(report?.totalMilkAmount ?? 0).toFixed(2)}`}
+            subtitle="Total milk earnings"
           />
+
           <StatCard
             title="Deduction"
             value={`₹ ${(report?.totalDeduction ?? 0).toFixed(2)}`}
+            subtitle="Total deductions"
           />
+
           <StatCard
             title="Net Payable"
             value={`₹ ${(report?.netPayable ?? 0).toFixed(2)}`}
+            subtitle="Final payable amount"
           />
         </div>
         {loading ? (

@@ -140,72 +140,60 @@ const DailyReportPage: React.FC = () => {
     );
   }, [report, shiftFilter]);
 
-
   //Export
   const formatRows = () =>
-  tableData.map((e) => ({
-    Shift: e.shift,
-    Farmer: e.farmerId?.name ?? "Deleted Farmer",
-    Mobile: e.farmerId?.mobile ?? "-",
-    Liters: e.quantity.toFixed(2),
-    FAT: (e.fat ?? 0).toFixed(1),
-    SNF: (e.snf ?? 0).toFixed(1),
-    Rate: e.rate.toFixed(2),
-    Amount: e.totalAmount.toFixed(2),
-  }));
+    tableData.map((e) => ({
+      Shift: e.shift,
+      Farmer: e.farmerId?.name ?? "Deleted Farmer",
+      Mobile: e.farmerId?.mobile ?? "-",
+      Liters: e.quantity.toFixed(2),
+      FAT: (e.fat ?? 0).toFixed(1),
+      SNF: (e.snf ?? 0).toFixed(1),
+      Rate: e.rate.toFixed(2),
+      Amount: e.totalAmount.toFixed(2),
+    }));
 
-  // Export Excel 
+  // Export Excel
   const exportExcel = () => {
-  if (!tableData.length) return toast.error("No records to export");
+    if (!tableData.length) return toast.error("No records to export");
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(formatRows());
-  XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(formatRows());
+    XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
-  const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  saveAs(
-    new Blob([buffer]),
-    `Daily-Report-${selectedDate}-${shiftFilter}.xlsx`,
-  );
-};
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(
+      new Blob([buffer]),
+      `Daily-Report-${selectedDate}-${shiftFilter}.xlsx`,
+    );
+  };
 
-//Export PDF
-const exportPDF = () => {
-  if (!tableData.length) return toast.error("No records to export");
+  //Export PDF
+  const exportPDF = () => {
+    if (!tableData.length) return toast.error("No records to export");
 
-  const doc = new jsPDF();
-  doc.text(
-    `Daily Report - ${selectedDate} (${shiftFilter})`,
-    14,
-    10,
-  );
+    const doc = new jsPDF();
+    doc.text(`Daily Report - ${selectedDate} (${shiftFilter})`, 14, 10);
 
-  autoTable(doc, {
-    head: [[
-      "Shift",
-      "Farmer",
-      "Mobile",
-      "Liters",
-      "FAT",
-      "SNF",
-      "Rate",
-      "Amount",
-    ]],
-    body: tableData.map((e) => [
-      e.shift,
-      e.farmerId?.name ?? "Deleted Farmer",
-      e.farmerId?.mobile ?? "-",
-      e.quantity.toFixed(2),
-      (e.fat ?? 0).toFixed(1),
-      (e.snf ?? 0).toFixed(1),
-      `₹ ${e.rate.toFixed(2)}`,
-      `₹ ${e.totalAmount.toFixed(2)}`,
-    ]),
-    startY: 20,
-  });
+    autoTable(doc, {
+      head: [
+        ["Shift", "Farmer", "Mobile", "Liters", "FAT", "SNF", "Rate", "Amount"],
+      ],
+      body: tableData.map((e) => [
+        e.shift,
+        e.farmerId?.name ?? "Deleted Farmer",
+        e.farmerId?.mobile ?? "-",
+        e.quantity.toFixed(2),
+        (e.fat ?? 0).toFixed(1),
+        (e.snf ?? 0).toFixed(1),
+        `₹ ${e.rate.toFixed(2)}`,
+        `₹ ${e.totalAmount.toFixed(2)}`,
+      ]),
+      startY: 20,
+    });
 
-  doc.save(`Daily-Report-${selectedDate}-${shiftFilter}.pdf`);
-};
+    doc.save(`Daily-Report-${selectedDate}-${shiftFilter}.pdf`);
+  };
 
   return (
     <div className="h-full w-full overflow-auto bg-[#F8F4E3] p-6">
@@ -239,7 +227,7 @@ const exportPDF = () => {
             onClick={() => (window.location.href = "/reports/monthly")}
             className="px-4 py-1.5 text-sm rounded-md bg-[#E9E2C8] text-[#5E503F]"
           >
-            Monthly
+            10 Days
           </button>
         </div>
 
@@ -263,6 +251,7 @@ const exportPDF = () => {
               1,
             )} / ${stats.buffaloLiters.toFixed(1)}`}
             variant="orange"
+            subtitle={undefined}
           />
           <StatCard
             title="Morning / Evening (L)"
@@ -270,6 +259,7 @@ const exportPDF = () => {
               1,
             )} / ${stats.eveningLiters.toFixed(1)}`}
             variant="red"
+            subtitle={undefined}
           />
         </div>
 
@@ -293,9 +283,9 @@ const exportPDF = () => {
 
           <button
             type="button"
-            onClick={() => setShiftFilter("Morning")}
+            onClick={() => setShiftFilter("morning")}
             className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-              shiftFilter === "Morning"
+              shiftFilter === "morning"
                 ? "bg-[#2A9D8F] text-white"
                 : "bg-[#E9E2C8] text-[#5E503F]"
             }`}
@@ -305,9 +295,9 @@ const exportPDF = () => {
 
           <button
             type="button"
-            onClick={() => setShiftFilter("Evening")}
+            onClick={() => setShiftFilter("evening")}
             className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-              shiftFilter === "Evening"
+              shiftFilter === "evening"
                 ? "bg-[#2A9D8F] text-white"
                 : "bg-[#E9E2C8] text-[#5E503F]"
             }`}
@@ -339,22 +329,22 @@ const exportPDF = () => {
           </>
         )}
         <div className="mt-0 flex justify-end gap-2">
-              <button
-                onClick={exportExcel}
-                className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
-              >
-                <i className="fa-solid fa-file-excel"></i>
-                Excel
-              </button>
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-excel"></i>
+            Excel
+          </button>
 
-              <button
-                onClick={exportPDF}
-                className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
-              >
-                <i className="fa-solid fa-file-pdf"></i>
-                PDF
-              </button>
-            </div>
+          <button
+            onClick={exportPDF}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-white text-xs"
+          >
+            <i className="fa-solid fa-file-pdf"></i>
+            PDF
+          </button>
+        </div>
       </div>
     </div>
   );

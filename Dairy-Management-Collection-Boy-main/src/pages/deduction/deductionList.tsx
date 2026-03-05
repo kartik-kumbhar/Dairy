@@ -208,26 +208,26 @@ const DeductionListPage: React.FC = () => {
     {
       id: "date",
       header: "Date",
-      align:"center",
+      align: "center",
       accessor: "date",
       className: "whitespace-nowrap",
     },
     {
       id: "farmerCode",
       header: "Farmer Code",
-      align:"center",
+      align: "center",
       accessor: "farmerCode",
     },
     {
       id: "farmerName",
       header: "Farmer Name",
-      align:"center",
+      align: "center",
       accessor: "farmerName",
     },
     {
       id: "category",
       header: "Category",
-      align:"center",
+      align: "center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -260,7 +260,7 @@ const DeductionListPage: React.FC = () => {
     {
       id: "status",
       header: "Status",
-      align:"center",
+      align: "center",
       cell: (row) => (
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
@@ -366,21 +366,25 @@ const DeductionListPage: React.FC = () => {
             title="Total Deductions"
             value={deductions.length}
             variant="teal"
+            subtitle={undefined}
           />
           <StatCard
             title="Total Amount (₹)"
             value={stats.total.toFixed(2)}
             variant="blue"
+            subtitle={undefined}
           />
           <StatCard
             title="Outstanding (₹)"
             value={stats.remaining.toFixed(2)}
             variant="orange"
+            subtitle={undefined}
           />
           <StatCard
             title="Pending / Partial / Cleared"
             value={`${stats.pending} / ${stats.partial} / ${stats.cleared}`}
             variant="red"
+            subtitle={undefined}
           />
         </div>
 

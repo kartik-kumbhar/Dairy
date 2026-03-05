@@ -3,6 +3,7 @@ import { protect } from "../middleware/auth_middleware.js";
 import {
   deleteBill,
   generateBill,
+  getBillDetails,
   getBills,
   markBillAsPaid,
   previewBill,
@@ -15,5 +16,6 @@ router.get("/", getBills);
 router.post("/preview", previewBill);
 router.delete("/:id", deleteBill); 
 router.put("/:id/pay", markBillAsPaid); 
+router.post("/details", getBillDetails);
 
 export default router;

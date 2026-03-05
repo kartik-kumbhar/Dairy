@@ -14,7 +14,7 @@ export type StatVariant =
 export interface StatCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle: React.ReactNode;
   icon?: React.ReactNode;
   variant?: StatVariant;
 }
@@ -59,7 +59,7 @@ const StatCard: React.FC<StatCardProps> = ({
         <p className="mt-1 text-2xl font-bold">
           {typeof value === "number" ? value.toLocaleString() : value}
         </p>
-        {subtitle && <p className="mt-1 text-[11px] opacity-90">{subtitle}</p>}
+        {subtitle && <div className="mt-1 text-[11px] opacity-90">{subtitle}</div>}
       </div>
       {icon && (
         <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
