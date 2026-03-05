@@ -433,6 +433,7 @@ const BonusManagementPage: React.FC = () => {
             title="Bonus Paid (This Month)"
             value={`₹ ${monthBonusPaid.toFixed(2)}`}
             variant="orange"
+            subtitle={undefined}
           />
           <StatCard
             title="Farmers"
