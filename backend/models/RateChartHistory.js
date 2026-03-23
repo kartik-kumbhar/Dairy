@@ -9,8 +9,8 @@ const rateChartHistorySchema = new mongoose.Schema(
     snfs: [Number],
     rates: [[Number]],
     baseRate: Number,
-    fatFactor: Number,
-    snfFactor: Number,
+    // fatFactor: Number,
+    // snfFactor: Number,
 
     savedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

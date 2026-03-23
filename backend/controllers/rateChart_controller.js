@@ -23,31 +23,29 @@ const calculateFatAmount = (fat, slabs = []) => {
   return +total.toFixed(2);
 };
 
-const generateRates = (baseRate, fatFactor, snfFactor) => {
+const generateRates = (baseRate) => {
   return DEFAULT_FATS.map((fat) =>
-    DEFAULT_SNFS.map(
-      (snf) => +(baseRate + fat * fatFactor + snf * snfFactor).toFixed(2),
-    ),
+    DEFAULT_SNFS.map((snf) => +(baseRate + fat + snf).toFixed(2)),
   );
 };
 
 const defaultRateChart = (milkType) => {
   // const baseRate = milkType === "cow" ? 20 : 30;
   // const fatFactor = milkType === "cow" ? 4 : 5;
-  let baseRate, fatFactor;
+  let baseRate;
 
   if (milkType === "cow") {
     baseRate = 20;
-    fatFactor = 1;
+    // fatFactor = 1;
   } else if (milkType === "buffalo") {
     baseRate = 30;
-    fatFactor = 1;
+    // fatFactor = 1;
   } else {
     baseRate = 25; // MIX default
-    fatFactor = 1; // MIX default
+    // fatFactor = 1; // MIX default
   }
 
-  const snfFactor = 1;
+  // const snfFactor = 1;
 
   const fatMin = 3.0;
   const fatMax = 5.0;
@@ -71,17 +69,17 @@ const defaultRateChart = (milkType) => {
     fats,
     snfs,
     fatSlabs: defaultFatSlabs,
+    snfSlabs: defaultSnfSlabs,
+
     rates: generateRatesFromRange(
       baseRate,
-      snfFactor,
       fats,
       snfs,
       defaultFatSlabs,
+      defaultSnfSlabs,
     ),
-    // rates: generateRatesFromRange(baseRate, fatFactor, snfFactor, fats, snfs),
+
     baseRate,
-    fatFactor,
-    snfFactor,
     effectiveFrom: new Date().toISOString().slice(0, 10),
     updatedAt: new Date().toISOString(),
   };
@@ -89,24 +87,45 @@ const defaultRateChart = (milkType) => {
 
 const generateRange = (min, max, step) => {
   const arr = [];
-  for (let v = min; v <= max; v += step) {
+  let v = min;
+
+  while (v <= max + 0.0001) {
     arr.push(+v.toFixed(2));
+    v = +(v + step).toFixed(2);
   }
+
   return arr;
 };
 
-const generateRatesFromRange = (baseRate, fatFactor, snfFactor, fats, snfs) => {
-  return fats.map((fat) =>
-    snfs.map(
-      (snf) =>
-        +(
-          baseRate +
-          calculateFatAmount(fat, fatSlabs) +
-          snf * snfFactor
-        ).toFixed(2),
-      ``,
-    ),
-  );
+const calculateSnfAmount = (snf, slabs = []) => {
+  let total = 0;
+
+  for (const slab of slabs) {
+    if (snf > slab.from) {
+      const usable = Math.min(snf, slab.to) - slab.from;
+      if (usable > 0) total += usable * 10 * slab.rate;
+    }
+  }
+
+  return +total.toFixed(2);
+};
+
+const generateRatesFromRange = (
+  baseRate,
+  fats,
+  snfs,
+  fatSlabs = [],
+  snfSlabs = [],
+) => {
+  return fats.map((fat) => {
+    const fatAmount = calculateFatAmount(fat, fatSlabs);
+
+    return snfs.map((snf) => {
+      const snfAmount = calculateSnfAmount(snf, snfSlabs);
+
+      return +(baseRate + fatAmount + snfAmount).toFixed(2);
+    });
+  });
 };
 
 /**
@@ -223,9 +242,9 @@ export const getRateForMilk = async (req, res) => {
     const snfValue = Number(snf);
 
     const fatAmount = calculateFatAmount(fatValue, chart.fatSlabs);
+    const snfAmount = calculateSnfAmount(snfValue, chart.snfSlabs);
 
-    const rate = chart.baseRate + fatAmount + snfValue * chart.snfFactor;
-
+    const rate = chart.baseRate + fatAmount + snfAmount;
     res.json({ rate: +rate.toFixed(2) });
   } catch (err) {
     console.error(err);
@@ -239,4 +258,10 @@ const defaultFatSlabs = [
   { from: 5, to: 6, rate: 0.1 },
   { from: 6, to: 7, rate: 0.1 },
   { from: 7, to: 10, rate: 0.1 },
+];
+
+const defaultSnfSlabs = [
+  { from: 7, to: 8, rate: 0.1 },
+  { from: 8, to: 9, rate: 0.1 },
+  { from: 9, to: 10, rate: 0.1 },
 ];

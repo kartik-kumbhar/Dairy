@@ -14,7 +14,7 @@ import ConfirmModal from "../../components/confirmModal";
 import Loader from "../../components/loader";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
+import PayBillModal from "../payments/payBillModal";
 import type { Farmer } from "../../types/farmer";
 import type { Bill, BillStatus } from "../../types/bills";
 
@@ -22,6 +22,7 @@ import { getFarmers } from "../../axios/farmer_api";
 import { generateBill, getBills } from "../../axios/bill_api";
 import { api } from "../../axios/axiosInstance";
 import toast from "react-hot-toast";
+import { payAllBills } from "../../axios/payment_api";
 // import myMarathiFont from './fonts/Hind-Regular.ttf'; // Example path
 type BillScope = "All" | "Single";
 
@@ -82,6 +83,9 @@ const BillManagementPage: React.FC = () => {
   const [calculatedRows, setCalculatedRows] = useState<CalculatedBillRow[]>([]);
   const [calculatedTotalNet, setCalculatedTotalNet] = useState<number>(0);
   const [savingBills, setSavingBills] = useState(false);
+
+  // Payment
+  const [payBillTarget, setPayBillTarget] = useState<Bill | null>(null);
 
   // Filters
   const [billStatusFilter, setBillStatusFilter] = useState<"All" | BillStatus>(
@@ -487,6 +491,16 @@ const BillManagementPage: React.FC = () => {
             Paid
           </button>
 
+          {/* Payment */}
+          <button
+            type="button"
+            disabled={row.status === "Paid"}
+            onClick={() => setPayBillTarget(row)}
+            className="border border-blue-500 text-blue-600 rounded-md px-2 py-1 text-xs hover:bg-blue-50"
+          >
+            Pay Bank
+          </button>
+
           {/* DELETE */}
           <button
             type="button"
@@ -773,6 +787,23 @@ Thank you.
     )}`;
 
     window.open(whatsappURL, "_blank");
+  };
+
+  const handlePayAll = async () => {
+    try {
+      const confirm = window.confirm("Pay all pending bills?");
+      if (!confirm) return;
+
+      const res = await payAllBills();
+
+      toast.success(res.data.message);
+
+      await loadBills();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Payment failed");
+    }
   };
 
   return (
@@ -1143,10 +1174,21 @@ Thank you.
 
         {/* Existing Bills */}
         <div className="rounded-xl border border-[#E9E2C8] bg-white p-5 shadow-sm">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          {/* <div className="mb-3 flex flex-wrap items-center justify-between gap-3"> */}
+          <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-[#5E503F]">
               Existing Bills
             </h2>
+
+            <button
+              disabled
+              onClick={handlePayAll}
+              // className="border bg-blue-600  border-blue-500 text-white rounded-md px-2 py-1 text-xs hover:bg-blue-50 hover:text-blue-600"
+               className="border bg-gray-400  rounded-md px-2 py-1 text-xs"
+            >
+              Pay All Bills
+            </button>
+            {/* </div> */}
           </div>
 
           <div className="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -1232,6 +1274,16 @@ Thank you.
         onConfirm={deleteBill}
         onCancel={() => setDeleteBillTarget(null)}
       />
+
+      {payBillTarget && (
+        <PayBillModal
+          billId={payBillTarget._id}
+          farmerName={payBillTarget.farmerName}
+          amount={payBillTarget.netAmount}
+          onClose={() => setPayBillTarget(null)}
+          onSuccess={loadBills}
+        />
+      )}
     </div>
   );
 };

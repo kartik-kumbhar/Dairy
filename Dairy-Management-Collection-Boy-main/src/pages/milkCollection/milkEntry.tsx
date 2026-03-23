@@ -1,6 +1,6 @@
 // src/pages/milkCollection/milkEntry.tsx
 import React, { useEffect, useMemo, useState } from "react";
-
+import { debounce } from "lodash";
 import InputField from "../../components/inputField";
 import Loader from "../../components/loader";
 
@@ -35,6 +35,7 @@ const addDays = (dateString: string, days: number) => {
 const MilkEntryPage: React.FC = () => {
   const today = useMemo(() => new Date(), []);
   const todayISO = useMemo(() => today.toISOString().slice(0, 10), [today]);
+  const [inputValue, setInputValue] = useState("");
 
   // Farmers
   const [farmers, setFarmers] = useState<Farmer[]>([]);
@@ -328,6 +329,21 @@ const MilkEntryPage: React.FC = () => {
     }
   };
 
+  //Debouncing
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setFarmerSearch(value);
+      }, 500),
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
   return (
     <div className="h-full w-full overflow-y-auto bg-[#F8F4E3] p-4 sm:p-5 lg:p-6">
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 lg:gap-6">
@@ -385,9 +401,12 @@ const MilkEntryPage: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Enter farmer name or code..."
-                    value={farmerSearch}
+                    value={inputValue}
                     onChange={(e) => {
-                      setFarmerSearch(e.target.value);
+                      // setFarmerSearch(e.target.value);
+                      setInputValue(e.target.value); // instant UI
+
+                      debouncedSearch(e.target.value);
                       setFarmerId("");
                     }}
                     className="mt-1 w-full rounded-md border border-[#E9E2C8] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2A9D8F]"
@@ -402,6 +421,7 @@ const MilkEntryPage: React.FC = () => {
                           onClick={() => {
                             setFarmerId(f._id);
                             setFarmerSearch(`${f.code} - ${f.name}`);
+                            setInputValue(`${f.code} - ${f.name}`); // ✅ ADD THIS
                           }}
                           className="cursor-pointer px-3 py-2 text-sm hover:bg-[#F8F4E3]"
                         >
@@ -583,7 +603,7 @@ const MilkEntryPage: React.FC = () => {
 
               {/* Cow Evening */}
               {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#F4A261]"> */}
+                  <div className=" text-xs font-semibold text-[#F4A261]"> */}
               <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#E76F51]">
                   🐄 Cow Evening
@@ -658,7 +678,7 @@ const MilkEntryPage: React.FC = () => {
 
               {/* Buffalo Evening */}
               {/* <div className="flex flex-col items-center px-6 min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#1D3557]"> */}
+                  <div className=" text-xs font-semibold text-[#1D3557]"> */}
               <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#E76F51]">
                   🐃 Buffalo Evening
@@ -697,7 +717,7 @@ const MilkEntryPage: React.FC = () => {
 
               {/* mix Morning */}
               {/* <div className="flex flex-col items-center px-6 border-r border-dashed border-[#E9E2C8] min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#457B9D]"> */}
+                  <div className=" text-xs font-semibold text-[#457B9D]"> */}
               <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#1D3557]">
                   🥛 Mix Morning
@@ -735,7 +755,7 @@ const MilkEntryPage: React.FC = () => {
 
               {/* mix Evening */}
               {/* <div className="flex flex-col items-center px-6 min-w-[260px]">
-                <div className=" text-xs font-semibold text-[#1D3557]"> */}
+                  <div className=" text-xs font-semibold text-[#1D3557]"> */}
               <div className="flex flex-col items-center w-full">
                 <div className=" text-xs font-semibold text-[#1D3557]">
                   🥛 Mix Evening

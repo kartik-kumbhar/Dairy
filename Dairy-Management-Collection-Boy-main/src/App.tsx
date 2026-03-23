@@ -1,112 +1,132 @@
 // src/App.tsx
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import Loader from "./components/loader";
 
-import MainLayout from "./layout/mainLayout";
+const MainLayout = lazy(() => import("./layout/mainLayout"));
 
 // Pages
-import DashboardPage from "./pages/dashboard/dashboard";
+const DashboardPage = lazy(() => import("./pages/dashboard/dashboard"));
 
-import FarmerListPage from "./pages/farmers/farmerList";
-import AddFarmerPage from "./pages/farmers/addFarmer";
+const FarmerListPage = lazy(() => import("./pages/farmers/farmerList"));
+const AddFarmerPage = lazy(() => import("./pages/farmers/addFarmer"));
 
-import MilkEntryPage from "./pages/milkCollection/milkEntry";
+const MilkEntryPage = lazy(() => import("./pages/milkCollection/milkEntry"));
 
-import DeductionListPage from "./pages/deduction/deductionList";
-import AddDeductionPage from "./pages/deduction/addDeduction";
+const DeductionListPage = lazy(() => import("./pages/deduction/deductionList"));
+const AddDeductionPage = lazy(() => import("./pages/deduction/addDeduction"));
 
-import InventoryListPage from "./pages/inventory/inventoryList";
-import AddInventoryPage from "./pages/inventory/addInventory";
+const InventoryListPage = lazy(() => import("./pages/inventory/inventoryList"));
+const AddInventoryPage = lazy(() => import("./pages/inventory/addInventory"));
 
-import BonusManagementPage from "./pages/bonus/bonusManagement";
-import RateChartPage from "./pages/rateChart/rateChart";
-import DailyReportPage from "./pages/reports/dailyReport";
-import MonthlyReportPage from "./pages/reports/monthlyReport";
-import BillManagementPage from "./pages/bills/billManagement";
-import MilkYieldReportPage from "./pages/reports/milkYieldReport";
-import BillingReportPage from "./pages/reports/billingReport";
-import InventoryReportPage from "./pages/reports/inventoryReport";
-import Settings from "./components/Settings";
+const BonusManagementPage = lazy(() => import("./pages/bonus/bonusManagement"));
+const RateChartPage = lazy(() => import("./pages/rateChart/rateChart"));
+const DailyReportPage = lazy(() => import("./pages/reports/dailyReport"));
+const MonthlyReportPage = lazy(() => import("./pages/reports/monthlyReport"));
+const BillManagementPage = lazy(() => import("./pages/bills/billManagement"));
+const MilkYieldReportPage = lazy(
+  () => import("./pages/reports/milkYieldReport"),
+);
+const BillingReportPage = lazy(() => import("./pages/reports/billingReport"));
+const InventoryReportPage = lazy(
+  () => import("./pages/reports/inventoryReport"),
+);
+const Settings = lazy(() => import("./components/Settings"));
 
 export const ReportsLayout = () => {
   return <Outlet />;
 };
 
-
 const App: React.FC = () => {
   return (
-    <Routes>
-      {/* Redirect root → dashboard */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <Loader size="lg" message="Loading page..." />
+        </div>
+      }
+    >
+      <Routes>
+        {/* Redirect root → dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      <Route element={<MainLayout />}>
-        {/* Dashboard */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route element={<MainLayout />}>
+          {/* Dashboard */}
+          <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Farmers */}
-        <Route path="/farmers" element={<FarmerListPage />} />
-        <Route path="/farmers/add" element={<AddFarmerPage />} />
+          {/* Farmers */}
+          <Route path="/farmers" element={<FarmerListPage />} />
+          <Route path="/farmers/add" element={<AddFarmerPage />} />
 
-        {/*Setting */}
-        <Route path="/settings" element={<Settings isOpen={false} onClose={function (): void {
-          throw new Error("Function not implemented.");
-        } }/>}/>
+          {/*Setting */}
+          <Route
+            path="/settings"
+            element={
+              <Settings
+                isOpen={false}
+                onClose={function (): void {
+                  throw new Error("Function not implemented.");
+                }}
+              />
+            }
+          />
 
-        {/* Milk Collection (combined entry + list) */}
-        <Route path="/milk-collection" element={<MilkEntryPage />} />
+          {/* Milk Collection (combined entry + list) */}
+          <Route path="/milk-collection" element={<MilkEntryPage />} />
 
-        {/* Deductions */}
-        <Route path="/deduction" element={<DeductionListPage />} />
-        <Route path="/deduction/add" element={<AddDeductionPage />} />
+          {/* Deductions */}
+          <Route path="/deduction" element={<DeductionListPage />} />
+          <Route path="/deduction/add" element={<AddDeductionPage />} />
 
-        {/* Inventory */}
-        <Route path="/inventory" element={<InventoryListPage />} />
-        <Route path="/inventory/add" element={<AddInventoryPage />} />
+          {/* Inventory */}
+          <Route path="/inventory" element={<InventoryListPage />} />
+          <Route path="/inventory/add" element={<AddInventoryPage />} />
 
-        {/* Bonus */}
-        <Route path="/bonus" element={<BonusManagementPage />} />
+          {/* Bonus */}
+          <Route path="/bonus" element={<BonusManagementPage />} />
 
-        {/* Rate Chart */}
-        <Route path="/rate-chart" element={<RateChartPage />} />
+          {/* Rate Chart */}
+          <Route path="/rate-chart" element={<RateChartPage />} />
 
-        {/* Reports */}
-        <Route path="/reports" element={<ReportsLayout />}>
-          <Route index element={<Navigate to="daily" replace />} />
-          <Route path="monthly" element={<MonthlyReportPage />} />
+          {/* Reports */}
+          <Route path="/reports" element={<ReportsLayout />}>
+            <Route index element={<Navigate to="daily" replace />} />
+            <Route path="monthly" element={<MonthlyReportPage />} />
 
-          <Route path="daily" element={<DailyReportPage />} />
-          <Route path="milk-yield" element={<MilkYieldReportPage />} />
-          <Route path="billing" element={<BillingReportPage />} />
-          <Route path="inventory" element={<InventoryReportPage />} />
+            <Route path="daily" element={<DailyReportPage />} />
+            <Route path="milk-yield" element={<MilkYieldReportPage />} />
+            <Route path="billing" element={<BillingReportPage />} />
+            <Route path="inventory" element={<InventoryReportPage />} />
+          </Route>
+
+          {/* Bills */}
+          <Route path="/bills" element={<BillManagementPage />} />
         </Route>
 
-        {/* Bills */}
-        <Route path="/bills" element={<BillManagementPage />} />
-      </Route>
-
-      {/* 404 */}
-      <Route
-        path="*"
-        element={
-          <div className="flex h-screen items-center justify-center bg-[#F8F4E3]">
-            <div className="rounded-xl border border-[#E9E2C8] bg-white px-8 py-6 text-center shadow">
-              <h1 className="mb-2 text-2xl font-bold text-[#5E503F]">
-                404 – Page not found
-              </h1>
-              <p className="mb-4 text-sm text-[#5E503F]/70">
-                The page you are looking for doesn&apos;t exist.
-              </p>
-              <a
-                href="/dashboard"
-                className="rounded-md bg-[#2A9D8F] px-4 py-2 text-sm font-medium text-white hover:bg-[#247B71]"
-              >
-                Go to Dashboard
-              </a>
+        {/* 404 */}
+        <Route
+          path="*"
+          element={
+            <div className="flex h-screen items-center justify-center bg-[#F8F4E3]">
+              <div className="rounded-xl border border-[#E9E2C8] bg-white px-8 py-6 text-center shadow">
+                <h1 className="mb-2 text-2xl font-bold text-[#5E503F]">
+                  404 – Page not found
+                </h1>
+                <p className="mb-4 text-sm text-[#5E503F]/70">
+                  The page you are looking for doesn&apos;t exist.
+                </p>
+                <a
+                  href="/dashboard"
+                  className="rounded-md bg-[#2A9D8F] px-4 py-2 text-sm font-medium text-white hover:bg-[#247B71]"
+                >
+                  Go to Dashboard
+                </a>
+              </div>
             </div>
-          </div>
-        }
-      />
-    </Routes>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 };
 

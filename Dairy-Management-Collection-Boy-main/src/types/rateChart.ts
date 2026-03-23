@@ -25,8 +25,8 @@ export interface MilkRateChart {
   rates: number[][];
 
   baseRate: number;
-  fatFactor: number;
-  snfFactor: number;
+  // fatFactor: number;
+  // snfFactor: number;
 
   updatedAt: string;
   effectiveFrom: string;

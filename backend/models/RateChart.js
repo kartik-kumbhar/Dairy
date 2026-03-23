@@ -36,14 +36,14 @@ const rateChartSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    fatFactor: {
-      type: Number,
-      required: true,
-    },
-    snfFactor: {
-      type: Number,
-      required: true,
-    },
+    // fatFactor: {
+    //   type: Number,
+    //   required: true,
+    // },
+    // snfFactor: {
+    //   type: Number,
+    //   required: true,
+    // },
     updatedAt: {
       type: String,
     },

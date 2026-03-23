@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config({ debug: false });
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import router from "./routes/auth_routes.js";
@@ -15,7 +17,7 @@ import rateChartRoutes from "./routes/rateChart_routes.js";
 import reportRoutes from "./routes/report_routes.js";
 import inventoryTransactionRoutes from "./routes/inventory_transaction_routes.js";
 
-dotenv.config({ debug: false });
+import paymentRoutes from "./routes/paymentRoutes.js";
 const app = express();
 
 app.use(express.json());
@@ -58,6 +60,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rate-chart", rateChartRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/inventory-transactions", inventoryTransactionRoutes);
+app.use("/api/payments", paymentRoutes);
 
 const PORT = process.env.PORT;
 
