@@ -2,6 +2,8 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Loader from "./components/loader";
+import SellDashboard from "./pages/sell/SellDashboard";
+import AddSale from "./pages/sell/AddSale";
 
 const MainLayout = lazy(() => import("./layout/mainLayout"));
 
@@ -58,6 +60,10 @@ const App: React.FC = () => {
           <Route path="/farmers" element={<FarmerListPage />} />
           <Route path="/farmers/add" element={<AddFarmerPage />} />
 
+          {/* Sell */}
+          <Route path="/sell" element={<SellDashboard />} />
+          <Route path="/sell/add" element={<AddSale />} />
+          
           {/*Setting */}
           <Route
             path="/settings"

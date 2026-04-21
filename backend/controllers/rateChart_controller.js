@@ -265,3 +265,26 @@ const defaultSnfSlabs = [
   { from: 8, to: 9, rate: 0.1 },
   { from: 9, to: 10, rate: 0.1 },
 ];
+
+export const getRateConfig = async (req, res) => {
+  const { milkType, date } = req.query;
+
+  const chart = await RateChart.findOne({
+    milkType,
+    effectiveFrom: { $lte: date },
+  }).sort({ effectiveFrom: -1 });
+
+  if (!chart) {
+    return res.status(404).json({ message: "No chart found" });
+  }
+
+  res.json({
+    fatMin: chart.fatMin,
+    fatMax: chart.fatMax,
+    snfMin: chart.snfMin,
+    snfMax: chart.snfMax,
+    fats: chart.fats,
+    snfs: chart.snfs,
+    rateChart: chart.rates, 
+  });
+};

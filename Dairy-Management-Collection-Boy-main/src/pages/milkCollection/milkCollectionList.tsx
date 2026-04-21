@@ -197,15 +197,36 @@ const MilkCollectionListPage: React.FC = () => {
       id: "actions",
       header: "Actions",
       align: "center",
-      cell: (row) => (
-        <button
-          type="button"
-          onClick={() => setDeleteTarget(row)}
-          className="rounded-md border border-[#E9E2C8] bg-white px-2 py-1 text-xs text-[#E76F51] hover:bg-[#E76F51]/10"
-        >
-          Delete
-        </button>
-      ),
+      cell: (row) => {
+        const data = row.original;
+
+        const today = new Date().toLocaleDateString("en-CA");
+        const entryDate = data.date.slice(0, 10);
+
+        const isEditable = today > entryDate;
+        // console.log(row);
+        return (
+          <div className="flex gap-2 justify-center">
+            {isEditable && (
+              <button
+                type="button"
+                onClick={() => navigate(`/milk-collection/edit/${data._id}`)}
+                className="rounded-md border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+              >
+                Edit
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(data)}
+              className="rounded-md border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </div>
+        );
+      },
     },
   ];
 

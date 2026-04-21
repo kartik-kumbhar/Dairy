@@ -1,5 +1,5 @@
 // src/layout/navbar.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface NavbarProps {
@@ -139,6 +139,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const [isDark, setIsDark] = React.useState(
     document.documentElement.classList.contains("dark"),
   );
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
 
   const toggleTheme = () => {
     if (isDark) {
@@ -186,15 +187,29 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     };
   }, []);
 
+  useEffect(() => {
+    const updateStatus = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    window.addEventListener("online", updateStatus);
+    window.addEventListener("offline", updateStatus);
+
+    return () => {
+      window.removeEventListener("online", updateStatus);
+      window.removeEventListener("offline", updateStatus);
+    };
+  }, []);
   return (
-<header className="flex items-center justify-between border-b border-[#E9E2C8] bg-[#F8F4E3] px-4 sm:px-6 py-3 shadow-sm">      {" "}
+    <header className="flex items-center justify-between border-b border-[#E9E2C8] bg-[#F8F4E3] px-4 sm:px-6 py-3 shadow-sm">
+      {" "}
       {/* LEFT SECTION */}
       <div className="flex items-start gap-3">
         {/* Hamburger (mobile only) */}
         <button
           type="button"
           onClick={() => {
-            console.log("Menu clicked"); // temporary debug
+            // console.log("Menu clicked"); // temporary debug
             onMenuClick();
           }}
           className="lg:hidden rounded-md p-2 text-[#5E503F]/80 hover:bg-[#EDE4C5]"
@@ -226,9 +241,20 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       </div>
       {/* RIGHT SECTION */}
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden border border-[#E9E2C8] sm:flex items-center gap-2 rounded-full bg-[#F8F4E3] px-3 py-1 text-xs text-[#5E503F]/80">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span>Online</span>
+        <div className="hidden border border-[#E9E2C8] sm:flex items-center gap-2 rounded-full bg-[#F8F4E3] px-3 py-1 text-xs">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              isOnline ? "bg-emerald-500" : "bg-red-500"
+            }`}
+          />
+
+          <span
+            className={`font-medium ${
+              isOnline ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {isOnline ? "Online" : "Offline"}
+          </span>
         </div>
 
         <div className="relative" ref={notificationRef}>

@@ -4,15 +4,15 @@ import RateChart from "../models/RateChart.js";
 
 export const addMilkEntry = async (req, res) => {
   try {
-    const { farmerId, date, shift, quantity, fat, snf, milkType } = req.body;
+    const { farmerId, date, shift, quantity, fat, snf, milkType, mode } =
+      req.body;
 
     if (
       !farmerId ||
       !date ||
       !shift ||
       quantity === undefined ||
-      fat === undefined ||
-      snf === undefined
+      (mode !== "AUTO" && (fat === undefined || snf === undefined))
     ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -29,6 +29,20 @@ export const addMilkEntry = async (req, res) => {
       });
     }
 
+    // 🔥 AUTO / MANUAL logic
+    let finalFat = fat;
+    let finalSnf = snf;
+    const entryMode = mode || "MANUAL";
+    if (entryMode === "AUTO") {
+      if (milkType === "cow") {
+        finalFat = +(Math.random() * 1 + 3.5).toFixed(1);
+        finalSnf = +(Math.random() * 1 + 8).toFixed(1);
+      } else if (milkType === "buffalo") {
+        finalFat = +(Math.random() * 2 + 5).toFixed(1);
+        finalSnf = +(Math.random() * 1 + 9).toFixed(1);
+      }
+    }
+
     // 1. Find applicable rate chart by date
     const chart = await RateChart.findOne({
       milkType,
@@ -42,8 +56,12 @@ export const addMilkEntry = async (req, res) => {
     }
 
     // 2. Find rate from FAT/SNF matrix
-    const fatIndex = chart.fats.indexOf(Number(fat));
-    const snfIndex = chart.snfs.indexOf(Number(snf));
+    const findClosestIndex = (arr, value) => {
+      return arr.findIndex((v) => Math.abs(v - value) < 0.05);
+    };
+
+    const fatIndex = findClosestIndex(chart.fats, Number(finalFat));
+    const snfIndex = findClosestIndex(chart.snfs, Number(finalSnf));
 
     if (fatIndex === -1 || snfIndex === -1) {
       return res.status(400).json({
@@ -61,8 +79,9 @@ export const addMilkEntry = async (req, res) => {
       shift,
       milkType,
       quantity,
-      fat,
-      snf,
+      fat: finalFat,
+      snf: finalSnf,
+      mode: entryMode,
       rate,
       totalAmount,
     });
@@ -108,6 +127,7 @@ export const getMilkEntries = async (req, res) => {
         snf: m.snf,
         rate: m.rate,
         amount: m.totalAmount,
+        mode:m.mode
       }));
 
     res.json(formatted);
@@ -132,4 +152,34 @@ export const deleteMilkEntry = async (req, res) => {
   }
 };
 
+export const updateMilkEntry = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const entry = await Milk.findById(id);
+
+    if (!entry) {
+      return res.status(404).json({ message: "Entry not found" });
+    }
+
+    const entryDate = new Date(entry.date);
+    const now = new Date();
+
+    const today = new Date().toLocaleDateString("en-CA");
+
+    if (today === entry.date) {
+      return res.status(403).json({
+        message: "Edit allowed only on next day",
+      });
+    }
+
+    const updated = await Milk.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Update failed:", err);
+    res.status(500).json({ message: "Update failed" });
+  }
+};

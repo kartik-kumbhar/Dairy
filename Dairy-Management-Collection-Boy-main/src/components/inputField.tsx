@@ -14,6 +14,7 @@ export interface InputFieldProps extends Omit<
   rightIcon?: React.ReactNode;
   containerClassName?: string;
   inputClassName?: string;
+  helperTextClassName?: string;
 }
 
 /**
@@ -29,6 +30,7 @@ const InputField: React.FC<InputFieldProps> = ({
   containerClassName,
   inputClassName,
   id,
+  helperTextClassName,
   ...rest
 }) => {
   const inputId = id || (label ? label.replace(/\s+/g, "-") : undefined);
@@ -66,11 +68,14 @@ const InputField: React.FC<InputFieldProps> = ({
         )}
       </div>
 
-      {error ? (
-        <p className="text-xs text-red-600">{error}</p>
-      ) : helperText ? (
-        <p className="text-xs text-[#5E503F]/60">{helperText}</p>
-      ) : null}
+      <p
+        className={clsx(
+          "text-xs",
+          error ? "text-red-600" : helperTextClassName || "text-[#5E503F]/60",
+        )}
+      >
+        {error || helperText}
+      </p>
     </div>
   );
 };

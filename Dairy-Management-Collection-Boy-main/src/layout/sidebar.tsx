@@ -143,6 +143,20 @@ const ReportsIcon = () => (
     <path d="M9 13h4" /> <path d="M9 17h2" />{" "}
   </svg>
 );
+
+const SellIcon = () => (
+  <svg
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="2"
+    fill="none"
+  >
+    <path d="M3 3h18l-2 13H5L3 3z" />
+    <circle cx="9" cy="20" r="1" />
+    <circle cx="17" cy="20" r="1" />
+  </svg>
+);
 const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
   const [dateTime, setDateTime] = useState(new Date());
   const location = useLocation();
@@ -187,6 +201,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
     { label: "Bonus Management", path: "/bonus", icon: <BonusIcon /> },
     { label: "Rate Chart", path: "/rate-chart", icon: <RateChartIcon /> },
     { label: "Inventory", path: "/inventory", icon: <InventoryIcon /> },
+    { label: "Sell", path: "/sell", icon: <SellIcon /> },
     { label: "Reports", path: "/reports", icon: <ReportsIcon /> },
     // { label: "Reports", path: "/reports/monthly", icon: <ReportsIcon /> },
   ];

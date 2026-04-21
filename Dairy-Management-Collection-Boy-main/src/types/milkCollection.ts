@@ -4,8 +4,10 @@ import type { MilkType } from "./farmer";
 export type MilkShift = "morning" | "evening";
 
 export interface MilkCollection {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  original: any;
   /** Unique internal id */
-_id: string;
+  _id: string;
 
   /** ISO date string (YYYY-MM-DD) of collection */
   date: string;
@@ -41,4 +43,6 @@ _id: string;
 
   /** ISO datetime string when entry was created */
   createdAt: string;
+
+  updatedAt: string;
 }

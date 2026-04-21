@@ -1,31 +1,40 @@
 import Farmer from "../models/Farmer.js";
 
 export const addFarmer = async (req, res) => {
-  // const farmer = await Farmer.create(req.body);
-  let { milkType } = req.body;
+  try {
+    let { milkType } = req.body;
 
-  if (!Array.isArray(milkType) || milkType.length === 0) {
-    return res.status(400).json({ message: "Milk type required" });
+    if (!Array.isArray(milkType) || milkType.length === 0) {
+      return res.status(400).json({ message: "Milk type required" });
+    }
+
+    if (
+      milkType.includes("mix") &&
+      (milkType.includes("cow") || milkType.includes("buffalo"))
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Mix cannot combine with cow/buffalo" });
+    }
+
+    const farmer = await Farmer.create(req.body);
+
+    res.status(201).json(farmer);
+  } catch (err) {
+    console.error("ADD FARMER ERROR 👉", err);
+    res.status(500).json({ message: "Failed to add farmer" });
   }
-
-  // prevent mix + cow/buffalo together
-  if (
-    milkType.includes("mix") &&
-    (milkType.includes("cow") || milkType.includes("buffalo"))
-  ) {
-    return res
-      .status(400)
-      .json({ message: "Mix cannot combine with cow/buffalo" });
-  }
-
-  const farmer = await Farmer.create(req.body);
-
-  res.status(201).json(farmer);
 };
 
 export const getFarmers = async (req, res) => {
-  const farmers = await Farmer.find().sort({ createdAt: -1 });
-  res.json(farmers);
+  try {
+    const farmers = await Farmer.find().sort({ createdAt: -1 });
+
+    res.json(farmers);
+  } catch (err) {
+    console.error("GET FARMERS ERROR 👉", err); // 🔥 VERY IMPORTANT
+    res.status(500).json({ message: "Failed to fetch farmers" });
+  }
 };
 
 export const deleteFarmer = async (req, res) => {

@@ -16,6 +16,8 @@ import dashboardRoutes from "./routes/dashboard_routes.js";
 import rateChartRoutes from "./routes/rateChart_routes.js";
 import reportRoutes from "./routes/report_routes.js";
 import inventoryTransactionRoutes from "./routes/inventory_transaction_routes.js";
+import saleRoutes from "./routes/saleRoutes.js";
+import machineRoutes from "./routes/machineRoutes.js";
 
 import paymentRoutes from "./routes/paymentRoutes.js";
 const app = express();
@@ -49,6 +51,10 @@ app.get("/", (req, res) => {
   res.send("Dairy Backend Running");
 });
 
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use("/api/auth", router);
 app.use("/api/farmers", farmerRoutes);
 app.use("/api/milk", milkRoutes);
@@ -61,6 +67,8 @@ app.use("/api/rate-chart", rateChartRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/inventory-transactions", inventoryTransactionRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/sales", saleRoutes);
+app.use("/api/machine", machineRoutes);
 
 const PORT = process.env.PORT;
 

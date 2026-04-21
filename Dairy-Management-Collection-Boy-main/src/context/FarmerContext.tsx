@@ -46,7 +46,7 @@ export const FarmerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     reloadFarmers();
-  }, []);
+  }, [reloadFarmers]);
 
   // Add farmer using backend API
   const addFarmer = async (input: AddFarmerInput) => {
