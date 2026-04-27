@@ -32,7 +32,7 @@ app.use(
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
-        "https://dairy-eo1r.vercel.app",
+        "https://dairy-opal.vercel.app",
         "http://localhost:5173",
       ];
 
