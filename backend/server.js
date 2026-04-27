@@ -20,6 +20,7 @@ import saleRoutes from "./routes/saleRoutes.js";
 import machineRoutes from "./routes/machineRoutes.js";
 
 import paymentRoutes from "./routes/paymentRoutes.js";
+import healthRoutes from "./routes/health.js";
 const app = express();
 
 app.use(express.json());
@@ -69,6 +70,7 @@ app.use("/api/inventory-transactions", inventoryTransactionRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/machine", machineRoutes);
+app.use("/api", healthRoutes);
 
 const PORT = process.env.PORT;
 
