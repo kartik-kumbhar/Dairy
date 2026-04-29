@@ -67,9 +67,8 @@ export const generateBill = async (req, res) => {
 
     const deductionList = await Deduction.find({
       farmerId,
-      // date: { $gte: periodFrom, $lte: periodTo },
-      date: { $gte: periodFrom, $lte: periodTo },
-    });
+      remainingAmount: { $gt: 0 },
+    }).sort({ createdAt: 1 });
 
     const bonusList = await Bonus.find({
       farmerId,
@@ -90,7 +89,10 @@ export const generateBill = async (req, res) => {
 
     const totalBonus = bonusList.reduce((s, b) => s + b.amount, 0);
 
-    const normalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);
+    const normalDeduction = deductionList.reduce(
+      (s, d) => s + d.remainingAmount,
+      0,
+    );
 
     const inventoryDeduction = inventoryList.reduce(
       (s, i) => s + i.remainingAmount,
@@ -131,6 +133,27 @@ export const generateBill = async (req, res) => {
       status: "Pending",
     });
 
+    let available = totalMilkAmount + totalBonus;
+
+    for (const d of deductionList) {
+      if (available <= 0) break;
+      if (d.remainingAmount <= 0) continue;
+
+      const adjusted = Math.min(available, d.remainingAmount);
+
+      d.remainingAmount -= adjusted;
+      available -= adjusted;
+
+      d.status =
+        d.remainingAmount <= 0
+          ? "Cleared"
+          : d.remainingAmount < d.amount
+            ? "Partial"
+            : "Pending";
+
+      await d.save();
+    }
+
     await InventoryTransaction.updateMany(
       {
         farmerId,
@@ -167,8 +190,8 @@ export const previewBill = async (req, res) => {
 
   const deductionList = await Deduction.find({
     farmerId,
-    date: { $gte: periodFrom, $lte: periodTo },
-  });
+    remainingAmount: { $gt: 0 },
+  }).sort({ createdAt: 1 });
 
   const bonusList = await Bonus.find({
     farmerId,
@@ -189,7 +212,10 @@ export const previewBill = async (req, res) => {
   const milkAmount = milkList.reduce((s, m) => s + m.totalAmount, 0);
   const bonusAmount = bonusList.reduce((s, b) => s + b.amount, 0);
 
-  const normalDeduction = deductionList.reduce((s, d) => s + d.amount, 0);
+  const normalDeduction = deductionList.reduce(
+    (s, d) => s + d.remainingAmount,
+    0,
+  );
 
   const inventoryDeduction = inventoryList.reduce(
     (s, i) => s + i.remainingAmount,
@@ -287,9 +313,8 @@ export const getBillDetails = async (req, res) => {
     // 2. Fetch Detailed Deductions (Cash Advances, etc.)
     const deductionList = await Deduction.find({
       farmerId,
-      date: { $gte: periodFrom, $lte: periodTo },
-    });
-
+      remainingAmount: { $gt: 0 },
+    }).sort({ createdAt: 1 });
     // 3. Fetch Inventory Deductions (Animal Feed, etc.)
     const inventoryList = await InventoryTransaction.find({
       farmerId,
@@ -307,8 +332,8 @@ export const getBillDetails = async (req, res) => {
     // Combine all deductions into a single array of objects
     const formattedDeductions = [
       ...deductionList.map((d) => ({
-        reason: d.reason || "कपात",
-        amount: d.amount,
+        reason: d.category || "कपात",
+        amount: d.remainingAmount,
       })),
       ...inventoryList.map((i) => ({
         reason: i.itemName || "पशुखाद्य",
@@ -325,7 +350,7 @@ export const getBillDetails = async (req, res) => {
         amount: b.amount,
       })),
     });
-  } catch (err) { 
+  } catch (err) {
     console.error("getBillDetails error:", err);
     res.status(500).json({ message: err.message });
   }
